@@ -6,8 +6,15 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useDispatch } from 'react-redux';
 import { login } from '@/features/auth/authSlice';
 import MainLayout from '@/layouts/MainLayout';
-import { TextField, Button, Paper, Typography, Box, CircularProgress, Alert, FormControlLabel, Checkbox } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Typography, FormControlLabel, Checkbox } from '@mui/material';
+
+// Import reusable components
+import AuthForm from '@/components/auth/AuthForm';
+import FormField from '@/components/auth/FormField';
+import SubmitButton from '@/components/auth/SubmitButton';
+
+// Import services
+import { registerUser } from '@/services/authService';
 
 const Register = () => {
   const { t } = useTranslation('common');
@@ -51,7 +58,7 @@ const Register = () => {
     }
     
     try {
-      // In a real app, you would make an API call to your backend
+      // In a real app, this would call the registerUser service
       // For now, we'll simulate it with a timeout
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -74,157 +81,90 @@ const Register = () => {
     }
   };
   
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: 'beforeChildren',
-        staggerChildren: 0.1,
-      },
-    },
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
+  // Footer content with login link
+  const footerContent = (
+    <Typography variant="body2">
+      {t('auth.haveAccount')}{' '}
+      <Link href="/login" className="text-primary-600 hover:underline">
+        {t('auth.login')}
+      </Link>
+    </Typography>
+  );
   
   return (
     <MainLayout>
-      <div className="py-10 px-4 min-h-[calc(100vh-200px)] flex items-center justify-center">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="w-full max-w-md"
-        >
-          <Paper elevation={3} className="p-8">
-            <motion.div variants={itemVariants}>
-              <Typography variant="h4" component="h1" className="text-center text-primary-600 mb-6">
-                {t('auth.register')}
-              </Typography>
-            </motion.div>
-            
-            {error && (
-              <motion.div variants={itemVariants}>
-                <Alert severity="error" className="mb-4">
-                  {error}
-                </Alert>
-              </motion.div>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.name')}
-                  name="name"
-                  value={formData.name}
+      <AuthForm
+        title={t('auth.register')}
+        error={error}
+        footer={footerContent}
+      >
+        <form onSubmit={handleSubmit}>
+          <FormField
+            name="name"
+            label={t('auth.name')}
+            value={formData.name}
+            onChange={handleChange}
+            required
+            autoComplete="name"
+          />
+          
+          <FormField
+            name="email"
+            label={t('auth.email')}
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            autoComplete="email"
+          />
+          
+          <FormField
+            name="password"
+            label={t('auth.password')}
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+          />
+          
+          <FormField
+            name="confirmPassword"
+            label={t('auth.confirmPassword')}
+            type="password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+          />
+          
+          <div className="mt-2">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="agreeTerms"
+                  checked={formData.agreeTerms}
                   onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.email')}
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.password')}
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.confirmPassword')}
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants} className="mt-2">
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      name="agreeTerms"
-                      checked={formData.agreeTerms}
-                      onChange={handleChange}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <span>
-                      {t('auth.agreeTerms')}{' '}
-                      <Link href="/terms" className="text-primary-600 hover:underline">
-                        {t('auth.termsLink')}
-                      </Link>
-                    </span>
-                  }
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <Button
-                  fullWidth
-                  type="submit"
-                  variant="contained"
                   color="primary"
-                  size="large"
-                  disabled={loading}
-                  className="mt-4 bg-primary-600 hover:bg-primary-700"
-                >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    t('auth.registerButton')
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-            
-            <motion.div variants={itemVariants} className="mt-6 text-center">
-              <Typography variant="body2">
-                {t('auth.haveAccount')}{' '}
-                <Link href="/login" className="text-primary-600 hover:underline">
-                  {t('auth.login')}
-                </Link>
-              </Typography>
-            </motion.div>
-          </Paper>
-        </motion.div>
-      </div>
+                />
+              }
+              label={
+                <span>
+                  {t('auth.agreeTerms')}{' '}
+                  <Link href="/terms" className="text-primary-600 hover:underline">
+                    {t('auth.termsLink')}
+                  </Link>
+                </span>
+              }
+            />
+          </div>
+          
+          <SubmitButton
+            loading={loading}
+            label={t('auth.registerButton')}
+          />
+        </form>
+      </AuthForm>
     </MainLayout>
   );
 };

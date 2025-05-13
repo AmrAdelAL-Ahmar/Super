@@ -2,10 +2,15 @@ import React from 'react';
 import { GetStaticProps } from 'next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import MainLayout from '@/layouts/MainLayout';
-import HeroSection from '@/components/HeroSection';
-import CategorySection from '@/components/CategorySection';
-import FeaturedProducts from '@/components/FeaturedProducts';
 
+// Import components
+import HeroSection from '@/components/home/HeroSection';
+import CategorySection from '@/components/home/CategorySection';
+import FeaturedProducts from '@/components/home/FeaturedProducts';
+
+/**
+ * Home page component
+ */
 const Home: React.FC = () => {
   return (
     <MainLayout>
@@ -16,6 +21,9 @@ const Home: React.FC = () => {
   );
 };
 
+/**
+ * Get static props for i18n
+ */
 export const getStaticProps: GetStaticProps = async ({ locale }) => {
   return {
     props: {

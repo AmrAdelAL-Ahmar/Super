@@ -6,8 +6,15 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useDispatch } from 'react-redux';
 import { login } from '@/features/auth/authSlice';
 import MainLayout from '@/layouts/MainLayout';
-import { TextField, Button, Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Typography } from '@mui/material';
+
+// Import reusable components
+import AuthForm from '@/components/auth/AuthForm';
+import FormField from '@/components/auth/FormField';
+import SubmitButton from '@/components/auth/SubmitButton';
+
+// Import services
+import { loginUser } from '@/services/authService';
 
 const Login = () => {
   const { t } = useTranslation('common');
@@ -35,7 +42,7 @@ const Login = () => {
     setError('');
     
     try {
-      // In a real app, you would make an API call to your backend
+      // In a real app, this would call the loginUser service
       // For now, we'll simulate it with a timeout
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -58,115 +65,56 @@ const Login = () => {
     }
   };
   
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: 'beforeChildren',
-        staggerChildren: 0.1,
-      },
-    },
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
+  // Footer content with registration link
+  const footerContent = (
+    <Typography variant="body2">
+      {t('auth.noAccount')}{' '}
+      <Link href="/register" className="text-primary-600 hover:underline">
+        {t('auth.register')}
+      </Link>
+    </Typography>
+  );
   
   return (
     <MainLayout>
-      <div className="py-10 px-4 min-h-[calc(100vh-200px)] flex items-center justify-center">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="w-full max-w-md"
-        >
-          <Paper elevation={3} className="p-8">
-            <motion.div variants={itemVariants}>
-              <Typography variant="h4" component="h1" className="text-center text-primary-600 mb-6">
-                {t('auth.login')}
-              </Typography>
-            </motion.div>
-            
-            {error && (
-              <motion.div variants={itemVariants}>
-                <Alert severity="error" className="mb-4">
-                  {error}
-                </Alert>
-              </motion.div>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.email')}
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.password')}
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <Button
-                  fullWidth
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  disabled={loading}
-                  className="mt-4 bg-primary-600 hover:bg-primary-700"
-                >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    t('auth.loginButton')
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-            
-            <motion.div variants={itemVariants} className="mt-4 text-center">
-              <Link href="/forgot-password" className="text-sm text-primary-600 hover:underline">
-                {t('auth.forgotPassword')}
-              </Link>
-            </motion.div>
-            
-            <motion.div variants={itemVariants} className="mt-6 text-center">
-              <Typography variant="body2">
-                {t('auth.noAccount')}{' '}
-                <Link href="/register" className="text-primary-600 hover:underline">
-                  {t('auth.register')}
-                </Link>
-              </Typography>
-            </motion.div>
-          </Paper>
-        </motion.div>
-      </div>
+      <AuthForm
+        title={t('auth.login')}
+        error={error}
+        footer={footerContent}
+      >
+        <form onSubmit={handleSubmit}>
+          <FormField
+            name="email"
+            label={t('auth.email')}
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            autoComplete="email"
+          />
+          
+          <FormField
+            name="password"
+            label={t('auth.password')}
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            autoComplete="current-password"
+          />
+          
+          <SubmitButton
+            loading={loading}
+            label={t('auth.loginButton')}
+          />
+          
+          <div className="mt-4 text-center">
+            <Link href="/forgot-password" className="text-sm text-primary-600 hover:underline">
+              {t('auth.forgotPassword')}
+            </Link>
+          </div>
+        </form>
+      </AuthForm>
     </MainLayout>
   );
 };

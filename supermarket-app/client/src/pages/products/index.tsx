@@ -3,129 +3,31 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import MainLayout from '@/layouts/MainLayout';
-import ProductCard from '@/components/ProductCard';
 import { 
   Container, 
-  Grid, 
   Typography, 
-  TextField, 
-  MenuItem, 
-  FormControl, 
-  InputLabel, 
-  Select, 
   Pagination, 
-  Box, 
-  Chip,
-  Button,
-  Drawer,
-  IconButton,
-  Slider,
-  Divider,
+  Box
 } from '@mui/material';
-import { 
-  MagnifyingGlassIcon as SearchIcon, 
-  Bars3Icon as FilterIcon, 
-  XMarkIcon as CloseIcon,
-} from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 
-// Mock product data
-const MOCK_PRODUCTS = [
-  {
-    id: '1',
-    name: 'Fresh Apples',
-    nameAr: 'تفاح طازج',
-    price: 5.99,
-    image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6',
-    discount: 0,
-    unit: 'kg',
-    category: 'fruits',
-  },
-  {
-    id: '2',
-    name: 'Organic Milk',
-    nameAr: 'حليب عضوي',
-    price: 3.49,
-    image: 'https://images.unsplash.com/photo-1563636619-e9143da7973b',
-    discount: 10,
-    unit: 'liter',
-    category: 'dairy',
-  },
-  {
-    id: '3',
-    name: 'Whole Wheat Bread',
-    nameAr: 'خبز القمح الكامل',
-    price: 2.99,
-    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38',
-    discount: 0,
-    unit: 'loaf',
-    category: 'bakery',
-  },
-  {
-    id: '4',
-    name: 'Fresh Chicken',
-    nameAr: 'دجاج طازج',
-    price: 8.99,
-    image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791',
-    discount: 15,
-    unit: 'kg',
-    category: 'meat',
-  },
-  {
-    id: '5',
-    name: 'Organic Tomatoes',
-    nameAr: 'طماطم عضوية',
-    price: 3.99,
-    image: 'https://images.unsplash.com/photo-1582284540020-8acbe03f4924',
-    discount: 0,
-    unit: 'kg',
-    category: 'vegetables',
-  },
-  {
-    id: '6',
-    name: 'Greek Yogurt',
-    nameAr: 'زبادي يوناني',
-    price: 4.49,
-    image: 'https://images.unsplash.com/photo-1571212515416-fca973f5e67b',
-    discount: 5,
-    unit: 'pack',
-    category: 'dairy',
-  },
-  {
-    id: '7',
-    name: 'Fresh Salmon',
-    nameAr: 'سمك السلمون الطازج',
-    price: 12.99,
-    image: 'https://images.unsplash.com/photo-1574781330855-d0db8cc6a79c',
-    discount: 0,
-    unit: 'kg',
-    category: 'seafood',
-  },
-  {
-    id: '8',
-    name: 'Almond Cookies',
-    nameAr: 'بسكويت باللوز',
-    price: 6.99,
-    image: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e',
-    discount: 20,
-    unit: 'pack',
-    category: 'bakery',
-  },
-];
+// Import components
+import ProductFilter from '@/components/products/ProductFilter';
+import FilterDrawer from '@/components/products/FilterDrawer';
+import ActiveFilters from '@/components/products/ActiveFilters';
+import ProductGrid from '@/components/products/ProductGrid';
 
-// Category options
-const CATEGORIES = [
-  { value: 'all', label: 'All Categories', labelAr: 'جميع الفئات' },
-  { value: 'fruits', label: 'Fruits', labelAr: 'فواكه' },
-  { value: 'vegetables', label: 'Vegetables', labelAr: 'خضروات' },
-  { value: 'dairy', label: 'Dairy', labelAr: 'منتجات الألبان' },
-  { value: 'meat', label: 'Meat', labelAr: 'لحوم' },
-  { value: 'seafood', label: 'Seafood', labelAr: 'مأكولات بحرية' },
-  { value: 'bakery', label: 'Bakery', labelAr: 'مخبوزات' },
-];
+// Import services and types
+import { getAllProducts, getAllCategories } from '@/services/productService';
+import { Product, ProductCategory, SortOption } from '@/types/product';
+
+interface ProductsPageProps {
+  products: Product[];
+  categories: ProductCategory[];
+}
 
 // Sort options
-const SORT_OPTIONS = [
+const SORT_OPTIONS: SortOption[] = [
   { value: 'name_asc', label: 'Name (A-Z)', labelAr: 'الاسم (أ-ي)' },
   { value: 'name_desc', label: 'Name (Z-A)', labelAr: 'الاسم (ي-أ)' },
   { value: 'price_asc', label: 'Price (Low to High)', labelAr: 'السعر (الأقل إلى الأعلى)' },
@@ -133,10 +35,9 @@ const SORT_OPTIONS = [
   { value: 'discount', label: 'Discount', labelAr: 'الخصم' },
 ];
 
-const ProductsPage = () => {
+const ProductsPage = ({ products, categories }: ProductsPageProps) => {
   const { t } = useTranslation('common');
   const router = useRouter();
-  const locale = router.locale || 'en';
   
   // State for filtering and sorting
   const [searchTerm, setSearchTerm] = useState('');
@@ -147,14 +48,14 @@ const ProductsPage = () => {
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   
   // Filtered products
-  const [filteredProducts, setFilteredProducts] = useState(MOCK_PRODUCTS);
+  const [filteredProducts, setFilteredProducts] = useState(products);
   
   // Products per page
   const productsPerPage = 8;
   
   // Apply filters and sorting
   useEffect(() => {
-    let result = [...MOCK_PRODUCTS];
+    let result = [...products];
     
     // Apply search filter
     if (searchTerm) {
@@ -205,7 +106,7 @@ const ProductsPage = () => {
     
     setFilteredProducts(result);
     setPage(1); // Reset to first page when filters change
-  }, [searchTerm, selectedCategory, sortOption, priceRange]);
+  }, [searchTerm, selectedCategory, sortOption, priceRange, products]);
   
   // Calculate pagination
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
@@ -220,9 +121,12 @@ const ProductsPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  // Handle price range change
-  const handlePriceRangeChange = (event: Event, newValue: number | number[]) => {
-    setPriceRange(newValue as number[]);
+  // Clear all filters
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setPriceRange([0, 20]);
+    setSortOption('name_asc');
   };
   
   // Motion variants
@@ -260,139 +164,58 @@ const ProductsPage = () => {
               component="h1"
               className="text-center font-bold text-gray-800 mb-8"
             >
-              {t('products.title')}
+              {t('product.title')}
             </Typography>
           </motion.div>
           
           {/* Filters for desktop */}
-          <motion.div variants={itemVariants} className="hidden md:flex justify-between mb-6">
-            <Box className="flex items-center space-x-4" sx={{ width: '100%' }}>
-              {/* Search bar */}
-              <TextField
-                placeholder={t('products.search')||""}
-                variant="outlined"
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon className="h-5 w-5 text-gray-400 mr-2" />,
-                }}
-                className="w-full max-w-md"
-              />
-              
-              {/* Category filter */}
-              <FormControl variant="outlined" size="small" className="min-w-[180px]">
-                <InputLabel>{t('products.category')}</InputLabel>
-                <Select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  label={t('products.category')}
-                >
-                  {CATEGORIES.map((category) => (
-                    <MenuItem key={category.value} value={category.value}>
-                      {locale === 'ar' ? category.labelAr : category.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              {/* Sort filter */}
-              <FormControl variant="outlined" size="small" className="min-w-[180px]">
-                <InputLabel>{t('products.sort')}</InputLabel>
-                <Select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
-                  label={t('products.sort')}
-                >
-                  {SORT_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {locale === 'ar' ? option.labelAr : option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
+          <motion.div variants={itemVariants} className="hidden md:block mb-6">
+            <ProductFilter 
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              sortOption={sortOption}
+              onSortChange={setSortOption}
+              categories={categories}
+              sortOptions={SORT_OPTIONS}
+            />
           </motion.div>
           
           {/* Filters for mobile */}
-          <motion.div variants={itemVariants} className="flex md:hidden justify-between mb-6">
-            <TextField
-              placeholder={t('products.search')||""}
-              variant="outlined"
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon className="h-5 w-5 text-gray-400 mr-2" />,
-              }}
-              className="flex-grow mr-2"
+          <motion.div variants={itemVariants} className="md:hidden mb-6">
+            <ProductFilter 
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedCategory={selectedCategory}
+              onCategoryChange={setSelectedCategory}
+              sortOption={sortOption}
+              onSortChange={setSortOption}
+              categories={categories}
+              sortOptions={SORT_OPTIONS}
+              isMobile={true}
+              onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
             />
-            <Button
-              variant="outlined"
-              startIcon={<FilterIcon className="h-5 w-5" />}
-              onClick={() => setIsFilterDrawerOpen(true)}
-            >
-              {t('products.filter')}
-            </Button>
           </motion.div>
           
           {/* Active filters */}
-          {(selectedCategory !== 'all' || priceRange[0] > 0 || priceRange[1] < 20) && (
-            <motion.div variants={itemVariants} className="flex flex-wrap gap-2 mb-4">
-              {selectedCategory !== 'all' && (
-                <Chip 
-                  label={locale === 'ar' 
-                    ? CATEGORIES.find(c => c.value === selectedCategory)?.labelAr 
-                    : CATEGORIES.find(c => c.value === selectedCategory)?.label
-                  } 
-                  onDelete={() => setSelectedCategory('all')}
-                  color="primary"
-                  variant="outlined"
-                />
-              )}
-              
-              {(priceRange[0] > 0 || priceRange[1] < 20) && (
-                <Chip 
-                  label={`${t('products.price')}: $${priceRange[0]} - $${priceRange[1]}`} 
-                  onDelete={() => setPriceRange([0, 20])}
-                  color="primary"
-                  variant="outlined"
-                />
-              )}
-            </motion.div>
-          )}
+          <motion.div variants={itemVariants} className="mb-4">
+            <ActiveFilters 
+              selectedCategory={selectedCategory}
+              onCategoryReset={() => setSelectedCategory('all')}
+              priceRange={priceRange}
+              onPriceRangeReset={() => setPriceRange([0, 20])}
+              categories={categories}
+            />
+          </motion.div>
           
           {/* Products grid */}
-          {displayedProducts.length > 0 ? (
-            <Grid container spacing={3} className="mb-8">
-              {displayedProducts.map((product) => (
-                <Grid item key={product.id} xs={12} sm={6} md={4} lg={3}>
-                  <motion.div variants={itemVariants}>
-                    <ProductCard product={product} />
-                  </motion.div>
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <motion.div variants={itemVariants} className="text-center py-16">
-              <Typography variant="h6" color="textSecondary">
-                {t('products.noResults')}
-              </Typography>
-              <Button 
-                variant="contained" 
-                color="primary" 
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCategory('all');
-                  setPriceRange([0, 20]);
-                  setSortOption('name_asc');
-                }}
-                className="mt-4"
-              >
-                {t('products.clearFilters')}
-              </Button>
-            </motion.div>
-          )}
+          <motion.div variants={itemVariants} className="mb-8">
+            <ProductGrid 
+              products={displayedProducts}
+              onClearFilters={handleClearFilters}
+            />
+          </motion.div>
           
           {/* Pagination */}
           {totalPages > 1 && (
@@ -411,108 +234,34 @@ const ProductsPage = () => {
       </Container>
       
       {/* Filter drawer for mobile */}
-      <Drawer
-        anchor="right"
+      <FilterDrawer 
         open={isFilterDrawerOpen}
         onClose={() => setIsFilterDrawerOpen(false)}
-      >
-        <Box sx={{ width: 280 }} p={3}>
-          <Box className="flex justify-between items-center mb-4">
-            <Typography variant="h6">{t('products.filter')}</Typography>
-            <IconButton onClick={() => setIsFilterDrawerOpen(false)}>
-              <CloseIcon className="h-5 w-5" />
-            </IconButton>
-          </Box>
-          
-          <Divider className="mb-4" />
-          
-          <Typography variant="subtitle2" className="mb-2">
-            {t('products.category')}
-          </Typography>
-          <FormControl fullWidth className="mb-4">
-            <Select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              size="small"
-            >
-              {CATEGORIES.map((category) => (
-                <MenuItem key={category.value} value={category.value}>
-                  {locale === 'ar' ? category.labelAr : category.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          <Typography variant="subtitle2" className="mb-2">
-            {t('products.sort')}
-          </Typography>
-          <FormControl fullWidth className="mb-4">
-            <Select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              size="small"
-            >
-              {SORT_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {locale === 'ar' ? option.labelAr : option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          <Typography variant="subtitle2" className="mb-2">
-            {t('products.priceRange')}
-          </Typography>
-          <Box px={1}>
-            <Slider
-              value={priceRange}
-              onChange={handlePriceRangeChange}
-              valueLabelDisplay="auto"
-              min={0}
-              max={20}
-              step={1}
-            />
-            <Box className="flex justify-between">
-              <Typography variant="body2">${priceRange[0]}</Typography>
-              <Typography variant="body2">${priceRange[1]}</Typography>
-            </Box>
-          </Box>
-          
-          <Button 
-            variant="contained" 
-            color="primary" 
-            fullWidth 
-            className="mt-4"
-            onClick={() => setIsFilterDrawerOpen(false)}
-          >
-            {t('products.applyFilters')}
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            color="primary" 
-            fullWidth 
-            className="mt-2"
-            onClick={() => {
-              setSearchTerm('');
-              setSelectedCategory('all');
-              setPriceRange([0, 20]);
-              setSortOption('name_asc');
-            }}
-          >
-            {t('products.clearFilters')}
-          </Button>
-        </Box>
-      </Drawer>
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        sortOption={sortOption}
+        onSortChange={setSortOption}
+        priceRange={priceRange}
+        onPriceRangeChange={setPriceRange}
+        categories={categories}
+        sortOptions={SORT_OPTIONS}
+        onClearFilters={handleClearFilters}
+      />
     </MainLayout>
   );
 };
 
 export async function getStaticProps({ locale }: { locale: string }) {
+  const products = await getAllProducts();
+  const categories = await getAllCategories();
+  
   return {
     props: {
       ...(await serverSideTranslations(locale, ['common'])),
+      products,
+      categories,
     },
+    revalidate: 60, // Revalidate every 60 seconds
   };
 }
 
