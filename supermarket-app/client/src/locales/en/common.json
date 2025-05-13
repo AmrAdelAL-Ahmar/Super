@@ -60,7 +60,27 @@
     "addToCart": "Add to Cart",
     "outOfStock": "Out of Stock",
     "discount": "OFF",
-    "relatedProducts": "Related Products"
+    "relatedProducts": "Related Products",
+    "details": "Details",
+    "nutritionInfo": "Nutrition Info",
+    "reviews": "Reviews",
+    "quantity": "Quantity",
+    "addToWishlist": "Add to Wishlist",
+    "per": "per",
+    "inStock": "In Stock",
+    "available": "available",
+    "deliveryAvailable": "Delivery Available",
+    "origin": "Origin",
+    "storageInstructions": "Storage Instructions",
+    "nutritionalValues": "Nutritional Values",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbohydrates",
+    "fat": "Fat",
+    "nutritionDisclaimer": "Values are approximated and may vary based on specific product conditions and origin.",
+    "noReviewsYet": "No reviews yet. Be the first to review this product!",
+    "writeReview": "Write a Review",
+    "addedToCart": "Product added to cart successfully!"
   },
   "cart": {
     "title": "Your Cart",
@@ -121,7 +141,14 @@
     "defaultAddress": "Default Address",
     "noAddresses": "No addresses saved yet",
     "saveChanges": "Save Changes",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "addressName": "Address Name",
+    "recipient": "Recipient Name",
+    "streetAddress": "Street Address",
+    "city": "City",
+    "zipCode": "Zip Code",
+    "phone": "Phone Number",
+    "setAsDefault": "Set as default address"
   },
   "order": {
     "id": "Order ID",
@@ -184,7 +211,14 @@
     "notes": "Order Notes",
     "successTitle": "Order Placed Successfully!",
     "successMessage": "Your order has been placed successfully. We will process it soon.",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "payWithCash": "Pay with cash upon delivery",
+    "payWithCard": "Pay with credit or debit card",
+    "cardPaymentMessage": "You will be redirected to a secure payment gateway after placing the order",
+    "orderNotes": "Additional notes for your order",
+    "notesPlaceholder": "Special instructions for delivery or food preparation...",
+    "agreeToTerms": "I agree to the",
+    "termsLink": "Terms and Conditions"
   },
   "orders": {
     "title": "My Orders",
