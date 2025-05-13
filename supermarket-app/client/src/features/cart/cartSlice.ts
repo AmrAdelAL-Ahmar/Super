@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// Define types for the cart state
+// Define a cart item type
 export interface CartItem {
   id: string;
   name: string;
@@ -12,83 +12,98 @@ export interface CartItem {
   unit: string;
 }
 
-export interface CartState {
+// Define the cart state
+interface CartState {
   items: CartItem[];
   totalItems: number;
-  totalPrice: number;
+  totalAmount: number;
 }
 
-// Function to get cart from localStorage
-const getLocalCart = (): CartItem[] => {
-  if (typeof window !== 'undefined') {
-    const cart = localStorage.getItem('cart');
-    return cart ? JSON.parse(cart) : [];
-  }
-  return [];
+// Calculate cart totals helper function
+const calculateCartTotals = (items: CartItem[]) => {
+  return items.reduce(
+    (totals, item) => {
+      totals.totalItems += item.quantity;
+      totals.totalAmount += item.price * item.quantity;
+      return totals;
+    },
+    { totalItems: 0, totalAmount: 0 }
+  );
 };
 
-// Define the initial state using the CartState type
+// Initial state
 const initialState: CartState = {
-  items: getLocalCart(),
-  totalItems: getLocalCart().reduce((total, item) => total + item.quantity, 0),
-  totalPrice: getLocalCart().reduce((total, item) => total + item.price * item.quantity, 0),
+  items: [],
+  totalItems: 0,
+  totalAmount: 0,
 };
 
-// Function to update localStorage
-const updateLocalStorage = (items: CartItem[]) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('cart', JSON.stringify(items));
-  }
-};
-
-// Create a slice for cart
-export const cartSlice = createSlice({
+// Create the cart slice
+const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
+    // Add item to cart
     addItem: (state, action: PayloadAction<CartItem>) => {
-      const existingItem = state.items.find((item) => item.id === action.payload.id);
-      
-      if (existingItem) {
-        existingItem.quantity += action.payload.quantity;
+      const existingItemIndex = state.items.findIndex(
+        (item) => item.id === action.payload.id
+      );
+
+      if (existingItemIndex >= 0) {
+        // If item already exists in cart, increase quantity
+        state.items[existingItemIndex].quantity += 1;
       } else {
-        state.items.push(action.payload);
+        // Otherwise, add new item
+        state.items.push({ ...action.payload, quantity: 1 });
       }
-      
-      state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
-      state.totalPrice = state.items.reduce((total, item) => total + item.price * item.quantity, 0);
-      
-      updateLocalStorage(state.items);
+
+      // Update totals
+      const { totalItems, totalAmount } = calculateCartTotals(state.items);
+      state.totalItems = totalItems;
+      state.totalAmount = totalAmount;
     },
+
+    // Remove item from cart
     removeItem: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((item) => item.id !== action.payload);
-      state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
-      state.totalPrice = state.items.reduce((total, item) => total + item.price * item.quantity, 0);
-      
-      updateLocalStorage(state.items);
+
+      // Update totals
+      const { totalItems, totalAmount } = calculateCartTotals(state.items);
+      state.totalItems = totalItems;
+      state.totalAmount = totalAmount;
     },
-    updateItemQuantity: (state, action: PayloadAction<{ id: string; quantity: number }>) => {
-      const item = state.items.find((item) => item.id === action.payload.id);
-      
-      if (item) {
-        item.quantity = action.payload.quantity;
-        state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
-        state.totalPrice = state.items.reduce((total, item) => total + item.price * item.quantity, 0);
-        
-        updateLocalStorage(state.items);
+
+    // Update item quantity
+    updateQuantity: (
+      state,
+      action: PayloadAction<{ id: string; quantity: number }>
+    ) => {
+      const { id, quantity } = action.payload;
+
+      const itemIndex = state.items.findIndex((item) => item.id === id);
+
+      if (itemIndex >= 0) {
+        state.items[itemIndex].quantity = quantity;
       }
+
+      // Update totals
+      const { totalItems, totalAmount } = calculateCartTotals(state.items);
+      state.totalItems = totalItems;
+      state.totalAmount = totalAmount;
     },
+
+    // Clear the cart
     clearCart: (state) => {
       state.items = [];
       state.totalItems = 0;
-      state.totalPrice = 0;
-      
-      updateLocalStorage(state.items);
+      state.totalAmount = 0;
     },
   },
 });
 
-// Export actions and reducer
-export const { addItem, removeItem, updateItemQuantity, clearCart } = cartSlice.actions;
+// Export actions
+export const { addItem, removeItem, updateQuantity, clearCart } =
+  cartSlice.actions;
 
+// Export reducer
 export default cartSlice.reducer; 

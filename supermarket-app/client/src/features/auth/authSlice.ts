@@ -1,104 +1,87 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// Define types for the auth state
+// Define the user type
 export interface User {
   id: string;
   name: string;
   email: string;
   role: 'customer' | 'owner' | 'delivery';
-  phone: string;
+  avatar?: string;
 }
 
-export interface AuthState {
+// Define the authentication state
+interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  token: string | null;
+  loading: boolean;
   error: string | null;
 }
 
-// Define the initial state using the AuthState type
+// Initial state
 const initialState: AuthState = {
   user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
   isAuthenticated: false,
-  isLoading: false,
+  token: null,
+  loading: false,
   error: null,
 };
 
-// Create a slice for auth
-export const authSlice = createSlice({
+// Create the auth slice
+const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    loginStart: (state) => {
-      state.isLoading = true;
+    // Login request action
+    loginRequest: (state) => {
+      state.loading = true;
       state.error = null;
     },
-    loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
-      state.isLoading = false;
+    // Login success action
+    login: (state, action: PayloadAction<{ user: User; token?: string }>) => {
+      state.loading = false;
       state.isAuthenticated = true;
       state.user = action.payload.user;
-      state.token = action.payload.token;
+      state.token = action.payload.token || null;
       state.error = null;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', action.payload.token);
-      }
     },
+    // Login failure action
     loginFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
+      state.loading = false;
       state.isAuthenticated = false;
       state.user = null;
       state.token = null;
       state.error = action.payload;
     },
+    // Logout action
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
       state.token = null;
       state.error = null;
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
+    },
+    // Update user profile action
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
       }
     },
-    registerStart: (state) => {
-      state.isLoading = true;
-      state.error = null;
-    },
-    registerSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
-      state.isLoading = false;
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.token = action.payload.token;
-      state.error = null;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', action.payload.token);
-      }
-    },
-    registerFailure: (state, action: PayloadAction<string>) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    },
-    updateUserSuccess: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
-    },
+    // Clear error action
     clearError: (state) => {
       state.error = null;
     },
   },
 });
 
-// Export actions and reducer
-export const {
-  loginStart,
-  loginSuccess,
-  loginFailure,
-  logout,
-  registerStart,
-  registerSuccess,
-  registerFailure,
-  updateUserSuccess,
-  clearError,
+// Export actions
+export const { 
+  loginRequest, 
+  login, 
+  loginFailure, 
+  logout, 
+  updateUser, 
+  clearError 
 } = authSlice.actions;
 
+// Export reducer
 export default authSlice.reducer; 

@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "Supermarket Delivery",
+    "name": "SuperMarket",
+    "description": "Your local grocery store, delivered to your doorstep",
     "slogan": "Fresh groceries delivered to your door"
   },
   "navigation": {
@@ -15,47 +16,165 @@
     "logout": "Logout",
     "dashboard": "Dashboard"
   },
+  "footer": {
+    "about": "About Us",
+    "contact": "Contact",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "copyright": "© 2023 SuperMarket. All rights reserved.",
+    "followUs": "Follow Us"
+  },
+  "home": {
+    "hero": {
+      "title": "Fresh groceries delivered to your door",
+      "subtitle": "Order your groceries online and get them delivered in as fast as 1 hour",
+      "shopNow": "Shop Now"
+    },
+    "categories": {
+      "title": "Shop by Category",
+      "viewAll": "View All",
+      "fruits": "Fruits",
+      "vegetables": "Vegetables",
+      "dairy": "Dairy",
+      "meat": "Meat",
+      "bakery": "Bakery",
+      "beverages": "Beverages",
+      "seafood": "Seafood"
+    },
+    "featured": {
+      "title": "Featured Products",
+      "viewAll": "View All"
+    }
+  },
+  "products": {
+    "title": "All Products",
+    "search": "Search products...",
+    "category": "Category",
+    "sort": "Sort By",
+    "price": "Price",
+    "priceRange": "Price Range",
+    "filter": "Filter",
+    "applyFilters": "Apply Filters",
+    "clearFilters": "Clear Filters",
+    "noResults": "No products found with the current filters",
+    "addToCart": "Add to Cart",
+    "outOfStock": "Out of Stock",
+    "discount": "OFF",
+    "relatedProducts": "Related Products"
+  },
+  "cart": {
+    "title": "Your Cart",
+    "empty": "Your cart is empty",
+    "emptyMessage": "Looks like you haven't added any products to your cart yet.",
+    "startShopping": "Start Shopping",
+    "continueShopping": "Continue Shopping",
+    "clearCart": "Clear Cart",
+    "orderSummary": "Order Summary",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "discount": "Discount",
+    "total": "Total",
+    "proceedToCheckout": "Proceed to Checkout",
+    "couponCode": "Coupon Code",
+    "enterCoupon": "Enter coupon code",
+    "apply": "Apply",
+    "invalidCoupon": "Invalid coupon code",
+    "tryCoupon": "Try these codes"
+  },
   "auth": {
     "login": "Login",
+    "loginButton": "Sign In",
     "register": "Register",
+    "registerButton": "Create Account",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "sendResetLink": "Send Reset Link",
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "name": "Full Name",
     "phone": "Phone Number",
-    "forgotPassword": "Forgot Password?",
+    "address": "Address",
+    "city": "City",
+    "zipCode": "Zip Code",
+    "country": "Country",
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
-    "signUp": "Sign Up",
-    "signIn": "Sign In"
+    "loginError": "Invalid email or password",
+    "registerError": "Error creating account",
+    "passwordMismatch": "Passwords do not match",
+    "agreeTerms": "I agree to the",
+    "agreeTermsRequired": "You must agree to the terms and conditions",
+    "termsLink": "Terms and Conditions"
   },
-  "products": {
-    "search": "Search products",
-    "filter": "Filter",
-    "sort": "Sort",
-    "categories": "Categories",
-    "price": "Price",
-    "addToCart": "Add to Cart",
-    "outOfStock": "Out of Stock",
-    "availability": "Availability",
-    "quantity": "Quantity",
-    "description": "Description",
-    "relatedProducts": "Related Products"
+  "profile": {
+    "title": "Your Profile",
+    "personalInfo": "Personal Information",
+    "addressBook": "Address Book",
+    "orderHistory": "Order History",
+    "addAddress": "Add New Address",
+    "editProfile": "Edit Profile",
+    "changePassword": "Change Password",
+    "logout": "Logout",
+    "accountDetails": "Account Details",
+    "deliveryAddresses": "Delivery Addresses",
+    "defaultAddress": "Default Address",
+    "noAddresses": "No addresses saved yet",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel"
   },
-  "cart": {
-    "title": "Shopping Cart",
-    "empty": "Your cart is empty",
-    "continueShopping": "Continue Shopping",
-    "checkout": "Checkout",
-    "summary": "Order Summary",
-    "subtotal": "Subtotal",
-    "delivery": "Delivery",
+  "order": {
+    "id": "Order ID",
+    "date": "Order Date",
+    "status": "Status",
     "total": "Total",
-    "remove": "Remove",
-    "update": "Update"
+    "items": "Items",
+    "viewDetails": "View Details",
+    "orderDetails": "Order Details",
+    "deliveryAddress": "Delivery Address",
+    "paymentMethod": "Payment Method",
+    "orderSummary": "Order Summary",
+    "orderTotal": "Order Total",
+    "trackOrder": "Track Order",
+    "orderPlaced": "Order Placed",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled",
+    "orderAgain": "Order Again",
+    "noOrders": "No orders yet"
+  },
+  "delivery": {
+    "dashboard": "Delivery Dashboard",
+    "pendingOrders": "Pending Orders",
+    "activeOrders": "Active Orders",
+    "completedOrders": "Completed Orders",
+    "acceptOrder": "Accept Order",
+    "rejectOrder": "Reject Order",
+    "startDelivery": "Start Delivery",
+    "completeDelivery": "Complete Delivery",
+    "customerLocation": "Customer Location",
+    "estimatedTime": "Estimated Delivery Time"
   },
   "checkout": {
     "title": "Checkout",
+    "shippingAddress": "Shipping Address",
+    "selectAddress": "Select Address",
+    "addNewAddress": "Add New Address",
+    "paymentMethod": "Payment Method",
+    "creditCard": "Credit Card",
+    "paypal": "PayPal",
+    "cashOnDelivery": "Cash on Delivery",
+    "cardNumber": "Card Number",
+    "cardHolder": "Card Holder Name",
+    "expiryDate": "Expiry Date",
+    "cvv": "CVV",
+    "reviewOrder": "Review Order",
+    "placeOrder": "Place Order",
+    "orderConfirmation": "Order Confirmation",
+    "orderPlaced": "Your order has been placed!",
+    "orderNumber": "Order Number",
+    "thankYou": "Thank you for your purchase",
     "address": "Delivery Address",
     "addAddress": "Add New Address",
     "paymentMethod": "Payment Method",
@@ -63,7 +182,6 @@
     "card": "Credit Card",
     "online": "Online Payment",
     "notes": "Order Notes",
-    "placeOrder": "Place Order",
     "successTitle": "Order Placed Successfully!",
     "successMessage": "Your order has been placed successfully. We will process it soon.",
     "backToHome": "Back to Home"
@@ -85,19 +203,6 @@
     "track": "Track Order",
     "reorder": "Reorder"
   },
-  "profile": {
-    "title": "My Profile",
-    "personalInfo": "Personal Information",
-    "addresses": "My Addresses",
-    "orders": "My Orders",
-    "settings": "Settings",
-    "editProfile": "Edit Profile",
-    "addAddress": "Add Address",
-    "language": "Language",
-    "notifications": "Notifications",
-    "save": "Save Changes",
-    "cancel": "Cancel"
-  },
   "owner": {
     "dashboard": "Dashboard",
     "products": "Products",
@@ -111,15 +216,6 @@
     "deliveredOrders": "Delivered Orders",
     "addEmployee": "Add Employee",
     "employeeList": "Employee List"
-  },
-  "delivery": {
-    "dashboard": "Dashboard",
-    "activeOrders": "Active Orders",
-    "deliveryHistory": "Delivery History",
-    "viewMap": "View Map",
-    "arrived": "Arrived at Customer",
-    "delivered": "Order Delivered",
-    "navigation": "Navigate to Customer"
   },
   "common": {
     "back": "Back",
@@ -136,9 +232,15 @@
     "yes": "Yes",
     "no": "No",
     "loading": "Loading...",
-    "error": "Something went wrong",
+    "error": "An error occurred",
     "success": "Success!",
     "confirm": "Confirm",
-    "select": "Select"
+    "select": "Select",
+    "retry": "Retry",
+    "next": "Next",
+    "previous": "Previous",
+    "view": "View",
+    "apply": "Apply",
+    "clear": "Clear"
   }
 } 

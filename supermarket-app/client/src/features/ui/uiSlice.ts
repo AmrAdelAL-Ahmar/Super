@@ -1,130 +1,139 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-// Define types for the UI state
-export interface UiState {
+// Define the UI state
+interface UIState {
   language: 'en' | 'ar';
-  direction: 'ltr' | 'rtl';
   theme: 'light' | 'dark';
+  direction: 'ltr' | 'rtl';
   sidebarOpen: boolean;
-  loading: boolean;
-  notifications: {
-    id: string;
-    type: 'success' | 'error' | 'info' | 'warning';
-    message: string;
-    read: boolean;
-  }[];
-  modal: {
-    isOpen: boolean;
-    type: string | null;
-    data: any | null;
+  loading: {
+    global: boolean;
+    [key: string]: boolean;
   };
+  toasts: Toast[];
+  layout: 'grid' | 'list';
 }
 
-// Get language from localStorage or browser default
-const getDefaultLanguage = (): 'en' | 'ar' => {
-  if (typeof window !== 'undefined') {
-    const storedLang = localStorage.getItem('language');
-    if (storedLang === 'en' || storedLang === 'ar') {
-      return storedLang;
-    }
-    // Check browser language
-    const browserLang = navigator.language;
-    if (browserLang.startsWith('ar')) {
-      return 'ar';
-    }
-  }
-  return 'en';
-};
+// Define a toast item
+export interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  message: string;
+  duration: number;
+  timestamp: number;
+}
 
-// Define the initial state using the UiState type
-const initialState: UiState = {
-  language: getDefaultLanguage(),
-  direction: getDefaultLanguage() === 'ar' ? 'rtl' : 'ltr',
+// Initial state
+const initialState: UIState = {
+  language: 'en',
   theme: 'light',
+  direction: 'ltr',
   sidebarOpen: false,
-  loading: false,
-  notifications: [],
-  modal: {
-    isOpen: false,
-    type: null,
-    data: null,
+  loading: {
+    global: false,
   },
+  toasts: [],
+  layout: 'grid',
 };
 
-// Create a slice for UI
-export const uiSlice = createSlice({
+// Create the UI slice
+const uiSlice = createSlice({
   name: 'ui',
   initialState,
   reducers: {
+    // Set language
     setLanguage: (state, action: PayloadAction<'en' | 'ar'>) => {
       state.language = action.payload;
       state.direction = action.payload === 'ar' ? 'rtl' : 'ltr';
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('language', action.payload);
+      // Update document direction
+      if (typeof document !== 'undefined') {
+        document.documentElement.dir = action.payload === 'ar' ? 'rtl' : 'ltr';
       }
     },
+    
+    // Toggle theme
+    toggleTheme: (state) => {
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
+      // Update document theme class
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('dark');
+      }
+    },
+    
+    // Set theme explicitly
     setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
       state.theme = action.payload;
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('theme', action.payload);
+      // Update document theme class
+      if (typeof document !== 'undefined') {
+        if (action.payload === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
       }
     },
+    
+    // Toggle sidebar
     toggleSidebar: (state) => {
       state.sidebarOpen = !state.sidebarOpen;
     },
+    
+    // Set sidebar state explicitly
     setSidebarOpen: (state, action: PayloadAction<boolean>) => {
       state.sidebarOpen = action.payload;
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload;
+    
+    // Set loading state for a specific key
+    setLoading: (state, action: PayloadAction<{ key: string; isLoading: boolean }>) => {
+      state.loading[action.payload.key] = action.payload.isLoading;
     },
-    addNotification: (state, action: PayloadAction<{
-      id: string;
-      type: 'success' | 'error' | 'info' | 'warning';
-      message: string;
-    }>) => {
-      state.notifications.push({ ...action.payload, read: false });
+    
+    // Set global loading state
+    setGlobalLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading.global = action.payload;
     },
-    markNotificationAsRead: (state, action: PayloadAction<string>) => {
-      const notification = state.notifications.find(n => n.id === action.payload);
-      if (notification) {
-        notification.read = true;
-      }
-    },
-    clearNotifications: (state) => {
-      state.notifications = [];
-    },
-    openModal: (state, action: PayloadAction<{ type: string; data?: any }>) => {
-      state.modal = {
-        isOpen: true,
-        type: action.payload.type,
-        data: action.payload.data || null,
+    
+    // Add a toast notification
+    addToast: (state, action: PayloadAction<Omit<Toast, 'id' | 'timestamp'>>) => {
+      const newToast: Toast = {
+        ...action.payload,
+        id: Date.now().toString(),
+        timestamp: Date.now(),
       };
+      state.toasts.push(newToast);
     },
-    closeModal: (state) => {
-      state.modal = {
-        isOpen: false,
-        type: null,
-        data: null,
-      };
+    
+    // Remove a toast notification
+    removeToast: (state, action: PayloadAction<string>) => {
+      state.toasts = state.toasts.filter((toast) => toast.id !== action.payload);
+    },
+    
+    // Clear all toast notifications
+    clearToasts: (state) => {
+      state.toasts = [];
+    },
+    
+    // Set layout (grid or list)
+    setLayout: (state, action: PayloadAction<'grid' | 'list'>) => {
+      state.layout = action.payload;
     },
   },
 });
 
-// Export actions and reducer
+// Export actions
 export const {
   setLanguage,
+  toggleTheme,
   setTheme,
   toggleSidebar,
   setSidebarOpen,
   setLoading,
-  addNotification,
-  markNotificationAsRead,
-  clearNotifications,
-  openModal,
-  closeModal,
+  setGlobalLoading,
+  addToast,
+  removeToast,
+  clearToasts,
+  setLayout,
 } = uiSlice.actions;
 
+// Export reducer
 export default uiSlice.reducer; 
