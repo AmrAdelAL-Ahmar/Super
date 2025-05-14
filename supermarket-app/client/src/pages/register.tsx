@@ -6,7 +6,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useDispatch } from 'react-redux';
 import { login } from '@/features/auth/authSlice';
 import MainLayout from '@/layouts/MainLayout';
-import { Typography, FormControlLabel, Checkbox } from '@mui/material';
+import { Typography, FormControlLabel, Checkbox, RadioGroup, Radio, FormControl, FormLabel } from '@mui/material';
 
 // Import reusable components
 import AuthForm from '@/components/auth/AuthForm';
@@ -15,6 +15,7 @@ import SubmitButton from '@/components/auth/SubmitButton';
 
 // Import services
 import { registerUser } from '@/services/authService';
+import { UserRole } from '@/types/user';
 
 const Register = () => {
   const { t } = useTranslation('common');
@@ -24,8 +25,10 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
+    role: 'customer' as UserRole,
     agreeTerms: false,
   });
   const [loading, setLoading] = useState(false);
@@ -58,23 +61,42 @@ const Register = () => {
     }
     
     try {
-      // In a real app, this would call the registerUser service
-      // For now, we'll simulate it with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the register API service
+      const user = await registerUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role
+      });
       
-      // Dispatch login action (would normally be done after API call)
+      // Dispatch login action with the user data from the API response
       dispatch(login({ 
-        user: { 
-          id: '1', 
-          email: formData.email,
-          name: formData.name, 
-          role: 'customer' 
-        } 
+        user: user
       }));
       
-      router.push('/');
-    } catch (err) {
-      setError(t('auth.registerError')||"");
+      // Redirect based on user role
+      if (user.role === 'owner') {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
+    } catch (err: any) {
+      // Handle specific error cases
+      if (err.response) {
+        // Handle validation errors
+        if (err.response.status === 400) {
+          setError(err.response.data?.error || t('auth.registerError') || 'Registration failed');
+        } else {
+          setError(err.response.data?.error || t('auth.registerError') || 'Registration failed');
+        }
+      } else if (err.request) {
+        // No response received from server
+        setError(t('auth.serverUnavailable') || 'Server unavailable. Please try again later.');
+      } else {
+        // Something else went wrong
+        setError(t('auth.registerError') || 'An error occurred during registration');
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -119,6 +141,16 @@ const Register = () => {
           />
           
           <FormField
+            name="phone"
+            label={t('auth.phone')}
+            type="tel"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+            autoComplete="tel"
+          />
+          
+          <FormField
             name="password"
             label={t('auth.password')}
             type="password"
@@ -137,6 +169,27 @@ const Register = () => {
             required
             autoComplete="new-password"
           />
+          
+          <FormControl component="fieldset" className="mt-4 mb-2">
+            <FormLabel component="legend">{t('auth.accountType') || 'Account Type'}</FormLabel>
+            <RadioGroup
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              row
+            >
+              <FormControlLabel 
+                value="customer" 
+                control={<Radio />} 
+                label={t('auth.customerAccount') || 'Customer'} 
+              />
+              <FormControlLabel 
+                value="owner" 
+                control={<Radio />} 
+                label={t('auth.ownerAccount') || 'Supermarket Owner'} 
+              />
+            </RadioGroup>
+          </FormControl>
           
           <div className="mt-2">
             <FormControlLabel

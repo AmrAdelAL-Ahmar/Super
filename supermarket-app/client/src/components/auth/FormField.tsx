@@ -1,28 +1,32 @@
 import React from 'react';
-import { TextField } from '@mui/material';
+import { TextField, TextFieldProps } from '@mui/material';
 import { motion } from 'framer-motion';
 
-interface FormFieldProps {
+export interface FormFieldProps {
   name: string;
   label: string;
-  type?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
   required?: boolean;
   autoComplete?: string;
   className?: string;
+  fullWidth?: boolean;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }
 
-const FormField: React.FC<FormFieldProps> = ({
+const FormField = ({
   name,
   label,
-  type = 'text',
   value,
   onChange,
+  type = 'text',
   required = false,
   autoComplete,
   className = '',
-}) => {
+  fullWidth = false,
+  inputProps,
+}: FormFieldProps) => {
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
@@ -32,18 +36,19 @@ const FormField: React.FC<FormFieldProps> = ({
   };
   
   return (
-    <motion.div variants={itemVariants} className={className}>
+    <motion.div variants={itemVariants} className={`mb-4 ${className}`}>
       <TextField
-        fullWidth
-        label={label}
+        id={name}
         name={name}
+        label={label}
         type={type}
         value={value}
         onChange={onChange}
-        margin="normal"
-        required={required}
         variant="outlined"
+        fullWidth={fullWidth || true}
+        required={required}
         autoComplete={autoComplete}
+        inputProps={inputProps}
       />
     </motion.div>
   );

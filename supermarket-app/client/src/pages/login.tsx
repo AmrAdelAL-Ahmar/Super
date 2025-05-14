@@ -6,7 +6,7 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useDispatch } from 'react-redux';
 import { login } from '@/features/auth/authSlice';
 import MainLayout from '@/layouts/MainLayout';
-import { Typography } from '@mui/material';
+import { Typography, Box, Divider } from '@mui/material';
 
 // Import reusable components
 import AuthForm from '@/components/auth/AuthForm';
@@ -42,23 +42,43 @@ const Login = () => {
     setError('');
     
     try {
-      // In a real app, this would call the loginUser service
-      // For now, we'll simulate it with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the login API service
+      const user = await loginUser({
+        email: formData.email,
+        password: formData.password
+      });
       
-      // Dispatch login action (would normally be done after API call)
+      // Dispatch login action with the user data from the API
       dispatch(login({ 
-        user: { 
-          id: '1', 
-          email: formData.email,
-          name: 'User Name', 
-          role: 'customer' 
-        } 
+        user: user
       }));
       
-      router.push('/');
-    } catch (err) {
-      setError(t('auth.loginError')||"");
+      // Role-based redirection
+      const redirectByRole = {
+        'customer': (router.query.returnUrl as string) || '/',
+        'owner': '/dashboard',
+        'delivery': '/delivery'
+      };
+      
+      const destination = redirectByRole[user.role] || '/';
+      router.push(destination);
+      
+    } catch (err: any) {
+      // Handle specific error cases
+      if (err.response) {
+        // Server responded with error
+        if (err.response.status === 401) {
+          setError(t('auth.invalidCredentials') || 'Invalid email or password');
+        } else {
+          setError(err.response.data?.error || t('auth.loginError') || 'Login failed');
+        }
+      } else if (err.request) {
+        // No response received from server
+        setError(t('auth.serverUnavailable') || 'Server unavailable. Please try again later.');
+      } else {
+        // Something else went wrong
+        setError(t('auth.loginError') || 'An error occurred during login');
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -67,12 +87,23 @@ const Login = () => {
   
   // Footer content with registration link
   const footerContent = (
+    <>
     <Typography variant="body2">
       {t('auth.noAccount')}{' '}
       <Link href="/register" className="text-primary-600 hover:underline">
         {t('auth.register')}
       </Link>
     </Typography>
+      
+      <Divider className="my-4" />
+      
+      <Typography variant="body2" align="center">
+        {t('auth.employeeAccount')}?{' '}
+        <Link href="/delivery/login" className="text-primary-600 hover:underline">
+          {t('auth.employeeLoginTitle')}
+        </Link>
+      </Typography>
+    </>
   );
   
   return (

@@ -30,6 +30,8 @@ import DeliveryStats from '@/components/delivery/DeliveryStats';
 import { useDeliveryStatus } from '@/hooks/useDeliveryStatus';
 import { getDeliveryPersonProfile, getActiveDelivery, getPendingOrders } from '@/services/deliveryService';
 import { DeliveryPerson, Delivery, PendingOrder } from '@/types/delivery';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
 const DeliveryDashboardPage = () => {
   const router = useRouter();
@@ -40,8 +42,20 @@ const DeliveryDashboardPage = () => {
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
   
   const { status, setStatus } = useDeliveryStatus();
+  const user = useSelector((state: RootState) => state.auth.user);
   
   useEffect(() => {
+    // Check if user is logged in and has delivery role
+    if (!user) {
+      router.push('/delivery/login?returnUrl=/delivery');
+      return;
+    }
+
+    if (user.role !== 'delivery') {
+      router.push('/');
+      return;
+    }
+    
     // Fetch data from our services
     const fetchData = async () => {
       try {
@@ -62,7 +76,7 @@ const DeliveryDashboardPage = () => {
     };
     
     fetchData();
-  }, []);
+  }, [user, router]);
   
   const handleStatusChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newStatus = event.target.checked ? 'online' : 'offline';

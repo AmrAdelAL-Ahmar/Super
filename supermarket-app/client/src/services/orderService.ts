@@ -198,7 +198,7 @@ const toOrderSummary = (order: Order): OrderSummary => {
  * 
  * @returns Promise resolving to array of orders
  */
-export const getUserOrders = async (): Promise<Order[]> => {
+export const getAllOrders = async (): Promise<Order[]> => {
   try {
     // In a real app, this would be a fetch call to the API
     return new Promise((resolve) => {
@@ -210,6 +210,19 @@ export const getUserOrders = async (): Promise<Order[]> => {
   } catch (error) {
     return handleApiError(error, 'Failed to fetch orders');
   }
+};
+
+/**
+ * Get all orders - alias for dashboard use
+ * This would typically include admin-specific API params
+ *
+ * @returns Promise resolving to array of orders
+ */
+export const getOrders = async (): Promise<Order[]> => {
+  return getAllOrders();
+};
+export const getUserOrders  = async (): Promise<Order[]> => {
+  return getAllOrders();
 };
 
 /**

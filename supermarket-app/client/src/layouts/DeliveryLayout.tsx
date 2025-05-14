@@ -17,6 +17,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { useTranslation } from 'next-i18next';
 import { getDeliveryNotifications } from '@/services/deliveryService';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '@/features/auth/authSlice';
+import { RootState } from '@/store';
+import { logoutUser } from '@/services/authService';
 
 interface DeliveryLayoutProps {
   children: ReactNode;
@@ -25,11 +29,25 @@ interface DeliveryLayoutProps {
 const DeliveryLayout: React.FC<DeliveryLayoutProps> = ({ children }) => {
   const router = useRouter();
   const { t } = useTranslation('common');
+  const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
+  
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   
   useEffect(() => {
+    // Check if user is logged in and has delivery role
+    if (!user) {
+      router.push('/delivery/login?returnUrl=' + router.pathname);
+      return;
+    }
+
+    if (user.role !== 'delivery') {
+      router.push('/');
+      return;
+    }
+    
     const fetchNotifications = async () => {
       try {
         const notifications = await getDeliveryNotifications();
@@ -46,7 +64,7 @@ const DeliveryLayout: React.FC<DeliveryLayoutProps> = ({ children }) => {
     const interval = setInterval(fetchNotifications, 60000); // Check every minute
     
     return () => clearInterval(interval);
-  }, []);
+  }, [user, router]);
   
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -60,9 +78,14 @@ const DeliveryLayout: React.FC<DeliveryLayoutProps> = ({ children }) => {
     setAnchorEl(null);
   };
   
-  const handleLogout = () => {
-    // Handle logout logic here
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      dispatch(logout());
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
   
   const menuItems = [
