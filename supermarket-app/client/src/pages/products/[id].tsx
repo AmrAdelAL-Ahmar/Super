@@ -28,8 +28,8 @@ import NutritionInfo from '@/components/products/NutritionInfo';
 import RelatedProducts from '@/components/products/RelatedProducts';
 
 // Import services
-import { getProductById, getRelatedProducts } from '@/services/productService';
-import { Product } from '@/types/product';
+import { getProductById, getRelatedProducts, getAllProducts } from '@/services/productService';
+import { Product, isProductInStock } from '@/types/product';
 
 interface ProductDetailProps {
   product: Product;
@@ -60,7 +60,8 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
       image: product.image,
       quantity: quantity,
       stock: product.stock,
-      unit: product.unit
+      unit: product.unit,
+      discount: product.discount
     }));
     setNotification(true);
   };
@@ -95,6 +96,8 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
     );
   }
   
+  const isInStock = isProductInStock(product);
+  
   return (
     <MainLayout>
       <motion.div
@@ -107,11 +110,15 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
           {/* Breadcrumbs */}
           <motion.div variants={itemVariants} className="mb-6">
             <Breadcrumbs separator={locale === 'ar' ? '←' : '→'} aria-label="breadcrumb">
-              <Link href="/" className="text-gray-500 hover:text-primary-600">
-                {t('navigation.home')}
+              <Link href="/" passHref legacyBehavior>
+                <a className="text-gray-500 hover:text-primary-600">
+                  {t('navigation.home')}
+                </a>
               </Link>
-              <Link href="/products" className="text-gray-500 hover:text-primary-600">
-                {t('navigation.products')}
+              <Link href="/products" passHref legacyBehavior>
+                <a className="text-gray-500 hover:text-primary-600">
+                  {t('navigation.products')}
+                </a>
               </Link>
               <Typography color="text.primary">
                 {locale === 'ar' ? product.nameAr : product.name}
@@ -152,9 +159,9 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
                 indicatorColor="primary"
                 textColor="primary"
               >
-                <Tab label={t('product.details')} />
-                <Tab label={t('product.nutritionInfo')} />
-                <Tab label={t('product.reviews')} />
+                <Tab label={t('products.details')} />
+                <Tab label={t('products.nutritionInfo')} />
+                <Tab label={t('products.reviews')} />
               </Tabs>
               
               <Box className="p-4">
@@ -162,9 +169,9 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
                   <Typography variant="body1">
                     {locale === 'ar' ? product.descriptionAr : product.description}
                     <br /><br />
-                    {t('product.origin')}: {locale === 'ar' ? 'مزارع محلية' : 'Local Farms'}
+                    {t('products.origin')}: {locale === 'ar' ? 'مزارع محلية' : 'Local Farms'}
                     <br />
-                    {t('product.storageInstructions')}: {locale === 'ar' ? 'يحفظ في مكان بارد وجاف' : 'Store in a cool, dry place'}
+                    {t('products.storageInstructions')}: {locale === 'ar' ? 'يحفظ في مكان بارد وجاف' : 'Store in a cool, dry place'}
                   </Typography>
                 )}
                 
@@ -175,7 +182,7 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
                 {activeTab === 2 && (
                   <Box className="text-center py-8">
                     <Typography variant="body1">
-                      {t('product.noReviewsYet')}
+                      {t('products.noReviewsYet')}
                     </Typography>
                   </Box>
                 )}
@@ -197,21 +204,24 @@ const ProductDetail = ({ product, relatedProducts }: ProductDetailProps) => {
         onClose={() => setNotification(false)}
       >
         <Alert severity="success" onClose={() => setNotification(false)}>
-          {t('product.addedToCartSuccess')}
+          {t('products.addedToCart')}
         </Alert>
       </Snackbar>
     </MainLayout>
   );
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  // In a real app, we would fetch all product IDs from the API
-  // For now, we'll use our mock data IDs
-  const products = await getProductById('1').then(product => [product]);
+export const getStaticPaths: GetStaticPaths = async ({ locales = ['en'] }) => {
+  // Fetch all products to generate paths
+  const products = await getAllProducts();
   
-  const paths = products.map((product) => ({
-    params: { id: product?.id || '1' },
-  }));
+  // Create paths for all products in all locales
+  const paths = products.flatMap((product) => 
+    locales.map((locale) => ({
+      params: { id: product.id },
+      locale
+    }))
+  );
   
   return {
     paths,
@@ -222,13 +232,14 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({ params, locale = 'en' }) => {
   const id = params?.id as string;
   const product = await getProductById(id);
-  const relatedProducts = await getRelatedProducts(id);
   
   if (!product) {
     return {
       notFound: true,
     };
   }
+  
+  const relatedProducts = await getRelatedProducts(id);
   
   return {
     props: {

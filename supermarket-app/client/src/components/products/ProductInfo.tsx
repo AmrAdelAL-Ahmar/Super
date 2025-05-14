@@ -17,8 +17,7 @@ import {
 import { motion } from 'framer-motion';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
-import { Product } from '@/types/product';
-import { calculateDiscountedPrice } from '@/services/productService';
+import { Product, calculateDiscountedPrice, isProductInStock } from '@/types/product';
 
 interface ProductInfoProps {
   product: Product;
@@ -42,6 +41,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const discountedPrice = product.discount > 0 
     ? calculateDiscountedPrice(product.price, product.discount)
     : null;
+  
+  // Check if product is in stock
+  const inStock = isProductInStock(product);
   
   // Handle quantity change
   const handleQuantityChange = (value: number) => {
@@ -77,7 +79,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       <Box className="flex items-center mb-4">
         <Rating value={product.rating} precision={0.5} readOnly />
         <Typography variant="body2" className="ml-2 text-gray-600">
-          ({product.reviewCount} {t('product.reviews')})
+          ({product.reviewCount} {t('products.reviews')})
         </Typography>
       </Box>
       
@@ -123,18 +125,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       {/* Stock Status */}
       <Box className="mb-6">
         <Typography variant="body2" className="text-gray-600 mb-1">
-          {t('product.availability')}:
+          {t('products.availability')}:
         </Typography>
-        {product.stock > 0 ? (
+        {inStock ? (
           <Box className="flex items-center">
             <CheckIcon className="h-5 w-5 text-green-500 mr-1" />
             <Typography variant="body1" className="text-green-600 font-medium">
-              {t('product.inStock')} ({product.stock} {t('product.available')})
+              {t('products.inStock')} ({product.stock} {t('products.available')})
             </Typography>
           </Box>
         ) : (
           <Typography variant="body1" className="text-red-600 font-medium">
-            {t('product.outOfStock')}
+            {t('products.outOfStock')}
           </Typography>
         )}
       </Box>
@@ -142,7 +144,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       {/* Quantity Selector */}
       <Box className="flex items-center mb-6">
         <Typography variant="body1" className="mr-4">
-          {t('product.quantity')}:
+          {t('products.quantity')}:
         </Typography>
         <Box className="flex items-center">
           <IconButton
@@ -194,7 +196,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         disabled={product.stock === 0}
         className="w-full sm:w-auto bg-primary-600 hover:bg-primary-700"
       >
-        {addedToCart ? t('product.addedToCart') : t('product.addToCart')}
+        {addedToCart ? t('products.addedToCart') : t('products.addToCart')}
       </Button>
     </motion.div>
   );

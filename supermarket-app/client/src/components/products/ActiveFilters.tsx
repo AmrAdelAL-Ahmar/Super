@@ -26,8 +26,11 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({
   const router = useRouter();
   const locale = router.locale || 'en';
   
+  // Get max price from range or default to 100
+  const maxPrice = priceRange[1];
+  
   // If no active filters, don't render anything
-  if (selectedCategory === 'all' && priceRange[0] === 0 && priceRange[1] === 20) {
+  if (selectedCategory === 'all' && priceRange[0] === 0 && priceRange[1] === maxPrice) {
     return null;
   }
   
@@ -45,9 +48,9 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         />
       )}
       
-      {(priceRange[0] > 0 || priceRange[1] < 20) && (
+      {(priceRange[0] > 0 || priceRange[1] < maxPrice) && (
         <Chip 
-          label={`${t('product.price')}: $${priceRange[0]} - $${priceRange[1]}`} 
+          label={`${t('products.price')}: $${priceRange[0]} - $${priceRange[1]}`} 
           onDelete={onPriceRangeReset}
           color="primary"
           variant="outlined"

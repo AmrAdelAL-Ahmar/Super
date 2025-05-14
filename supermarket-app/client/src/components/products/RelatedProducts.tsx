@@ -30,7 +30,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
       className={className}
     >
       <Typography variant="h5" component="h2" className="font-bold mb-6">
-        {title || t('product.relatedProducts')}
+        {title || t('products.relatedProducts')}
       </Typography>
       
       <Grid container spacing={3}>

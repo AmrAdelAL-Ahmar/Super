@@ -58,7 +58,7 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
     return (
       <Box className={`flex justify-between ${className}`}>
         <TextField
-          placeholder={t('product.search')||""}
+          placeholder={t('products.search')||""}
           variant="outlined"
           size="small"
           value={searchTerm}
@@ -73,7 +73,7 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
           startIcon={<FilterIcon className="h-5 w-5" />}
           onClick={onOpenFilterDrawer}
         >
-          {t('product.filter')}
+          {t('products.filter')}
         </Button>
       </Box>
     );
@@ -84,7 +84,7 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
     <Box className={`flex items-center space-x-4 ${className}`} sx={{ width: '100%' }}>
       {/* Search bar */}
       <TextField
-        placeholder={t('product.search')||""}
+        placeholder={t('products.search')||""}
         variant="outlined"
         size="small"
         value={searchTerm}
@@ -97,12 +97,13 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
       
       {/* Category filter */}
       <FormControl variant="outlined" size="small" className="min-w-[180px]">
-        <InputLabel>{t('product.category')}</InputLabel>
+        <InputLabel>{t('products.category')}</InputLabel>
         <Select
           value={selectedCategory}
           onChange={handleCategoryChange}
-          label={t('product.category')}
+          label={t('products.category')}
         >
+          <MenuItem value="all">{t('common.all', 'All')}</MenuItem>
           {categories.map((category) => (
             <MenuItem key={category.value} value={category.value}>
               {locale === 'ar' ? category.labelAr : category.label}
@@ -113,11 +114,11 @@ const ProductFilter: React.FC<ProductFilterProps> = ({
       
       {/* Sort filter */}
       <FormControl variant="outlined" size="small" className="min-w-[180px]">
-        <InputLabel>{t('product.sort')}</InputLabel>
+        <InputLabel>{t('products.sort')}</InputLabel>
         <Select
           value={sortOption}
           onChange={handleSortChange}
-          label={t('product.sort')}
+          label={t('products.sort')}
         >
           {sortOptions.map((option) => (
             <MenuItem key={option.value} value={option.value}>

@@ -7,7 +7,8 @@ import {
   Container, 
   Typography, 
   Pagination, 
-  Box
+  Box,
+  Alert
 } from '@mui/material';
 import { motion } from 'framer-motion';
 
@@ -18,8 +19,8 @@ import ActiveFilters from '@/components/products/ActiveFilters';
 import ProductGrid from '@/components/products/ProductGrid';
 
 // Import services and types
-import { getAllProducts, getAllCategories } from '@/services/productService';
-import { Product, ProductCategory, SortOption } from '@/types/product';
+import { getAllProducts, getAllCategories, getFilteredProducts } from '@/services/productService';
+import { Product, ProductCategory, SortOption, ProductFilter as ProductFilterType, calculateDiscountedPrice } from '@/types/product';
 
 interface ProductsPageProps {
   products: Product[];
@@ -44,8 +45,10 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortOption, setSortOption] = useState('name_asc');
   const [page, setPage] = useState(1);
-  const [priceRange, setPriceRange] = useState<number[]>([0, 20]);
+  const [priceRange, setPriceRange] = useState<number[]>([0, 100]);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Filtered products
   const [filteredProducts, setFilteredProducts] = useState(products);
@@ -55,58 +58,100 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
   
   // Apply filters and sorting
   useEffect(() => {
-    let result = [...products];
-    
-    // Apply search filter
-    if (searchTerm) {
-      result = result.filter(product => {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          product.name.toLowerCase().includes(searchLower) ||
-          product.nameAr.includes(searchTerm)
-        );
-      });
-    }
-    
-    // Apply category filter
-    if (selectedCategory !== 'all') {
-      result = result.filter(product => product.category === selectedCategory);
-    }
-    
-    // Apply price range filter
-    result = result.filter(
-      product => {
-        const discountedPrice = product.discount > 0 
-          ? product.price - (product.price * product.discount / 100) 
-          : product.price;
-        return discountedPrice >= priceRange[0] && discountedPrice <= priceRange[1];
+    const applyFilters = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Create filter object
+        const filter: ProductFilterType = {
+          searchTerm: searchTerm || undefined,
+          category: selectedCategory !== 'all' ? selectedCategory : undefined,
+          minPrice: priceRange[0],
+          maxPrice: priceRange[1],
+          sortBy: sortOption,
+          page: 1,
+          limit: products.length // Get all filtered items first, then paginate on client side
+        };
+        
+        // Check if we can filter products locally or need to call API
+        if (products.length > 0 && (!searchTerm || searchTerm.length < 3)) {
+          // Filter locally for simple cases
+          let result = [...products];
+          
+          // Apply search filter
+          if (searchTerm) {
+            result = result.filter(product => {
+              const searchLower = searchTerm.toLowerCase();
+              return (
+                product.name.toLowerCase().includes(searchLower) ||
+                product.nameAr.includes(searchTerm) ||
+                product.tags.some(tag => tag.toLowerCase().includes(searchLower)) ||
+                product.tagsAr.some(tag => tag.includes(searchTerm))
+              );
+            });
+          }
+          
+          // Apply category filter
+          if (selectedCategory !== 'all') {
+            result = result.filter(product => product.category === selectedCategory);
+          }
+          
+          // Apply price range filter
+          result = result.filter(
+            product => {
+              const discountedPrice = calculateDiscountedPrice(product.price, product.discount);
+              return discountedPrice >= priceRange[0] && discountedPrice <= priceRange[1];
+            }
+          );
+          
+          // Apply sorting
+          switch (sortOption) {
+            case 'name_asc':
+              result.sort((a, b) => a.name.localeCompare(b.name));
+              break;
+            case 'name_desc':
+              result.sort((a, b) => b.name.localeCompare(a.name));
+              break;
+            case 'price_asc':
+              result.sort((a, b) => {
+                const priceA = calculateDiscountedPrice(a.price, a.discount);
+                const priceB = calculateDiscountedPrice(b.price, b.discount);
+                return priceA - priceB;
+              });
+              break;
+            case 'price_desc':
+              result.sort((a, b) => {
+                const priceA = calculateDiscountedPrice(a.price, a.discount);
+                const priceB = calculateDiscountedPrice(b.price, b.discount);
+                return priceB - priceA;
+              });
+              break;
+            case 'discount':
+              result.sort((a, b) => b.discount - a.discount);
+              break;
+            default:
+              break;
+          }
+          
+          setFilteredProducts(result);
+        } else {
+          // For more complex filtering or search, use the API
+          const result = await getFilteredProducts(filter);
+          setFilteredProducts(result);
+        }
+        
+        setPage(1); // Reset to first page when filters change
+      } catch (err) {
+        setError(t('products.errorFiltering', 'Failed to filter products'));
+        console.error('Error filtering products:', err);
+      } finally {
+        setLoading(false);
       }
-    );
+    };
     
-    // Apply sorting
-    switch (sortOption) {
-      case 'name_asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'name_desc':
-        result.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      case 'price_asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price_desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'discount':
-        result.sort((a, b) => b.discount - a.discount);
-        break;
-      default:
-        break;
-    }
-    
-    setFilteredProducts(result);
-    setPage(1); // Reset to first page when filters change
-  }, [searchTerm, selectedCategory, sortOption, priceRange, products]);
+    applyFilters();
+  }, [searchTerm, selectedCategory, sortOption, priceRange, products, t]);
   
   // Calculate pagination
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
@@ -125,9 +170,19 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('all');
-    setPriceRange([0, 20]);
+    setPriceRange([0, 100]);
     setSortOption('name_asc');
   };
+  
+  // Find max price in products for price range
+  useEffect(() => {
+    if (products.length > 0) {
+      const maxPrice = Math.ceil(
+        Math.max(...products.map(p => p.price)) + 10
+      );
+      setPriceRange([0, maxPrice]);
+    }
+  }, [products]);
   
   // Motion variants
   const containerVariants = {
@@ -164,9 +219,18 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
               component="h1"
               className="text-center font-bold text-gray-800 mb-8"
             >
-              {t('product.title')}
+              {t('products.title')}
             </Typography>
           </motion.div>
+          
+          {/* Error message */}
+          {error && (
+            <motion.div variants={itemVariants}>
+              <Alert severity="error" className="mb-4">
+                {error}
+              </Alert>
+            </motion.div>
+          )}
           
           {/* Filters for desktop */}
           <motion.div variants={itemVariants} className="hidden md:block mb-6">
@@ -204,7 +268,7 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
               selectedCategory={selectedCategory}
               onCategoryReset={() => setSelectedCategory('all')}
               priceRange={priceRange}
-              onPriceRangeReset={() => setPriceRange([0, 20])}
+              onPriceRangeReset={() => setPriceRange([0, Math.ceil(Math.max(...products.map(p => p.price)) + 10)])}
               categories={categories}
             />
           </motion.div>
@@ -214,6 +278,7 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
             <ProductGrid 
               products={displayedProducts}
               onClearFilters={handleClearFilters}
+              loading={loading}
             />
           </motion.div>
           
@@ -252,17 +317,29 @@ const ProductsPage = ({ products, categories }: ProductsPageProps) => {
 };
 
 export async function getStaticProps({ locale }: { locale: string }) {
-  const products = await getAllProducts();
-  const categories = await getAllCategories();
-  
-  return {
-    props: {
-      ...(await serverSideTranslations(locale, ['common'])),
-      products,
-      categories,
-    },
-    revalidate: 60, // Revalidate every 60 seconds
-  };
+  try {
+    const products = await getAllProducts();
+    const categories = await getAllCategories();
+    
+    return {
+      props: {
+        ...(await serverSideTranslations(locale, ['common'])),
+        products,
+        categories,
+      },
+      revalidate: 60, // Revalidate every 60 seconds
+    };
+  } catch (error) {
+    console.error('Error fetching product data:', error);
+    return {
+      props: {
+        ...(await serverSideTranslations(locale, ['common'])),
+        products: [],
+        categories: [],
+      },
+      revalidate: 10, // Retry sooner if there was an error
+    };
+  }
 }
 
 export default ProductsPage; 

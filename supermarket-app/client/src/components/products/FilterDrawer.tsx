@@ -68,7 +68,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
     >
       <Box sx={{ width: 280 }} p={3}>
         <Box className="flex justify-between items-center mb-4">
-          <Typography variant="h6">{t('product.filter')}</Typography>
+          <Typography variant="h6">{t('products.filter')}</Typography>
           <IconButton onClick={onClose}>
             <CloseIcon className="h-5 w-5" />
           </IconButton>
@@ -77,7 +77,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
         <Divider className="mb-4" />
         
         <Typography variant="subtitle2" className="mb-2">
-          {t('product.category')}
+          {t('products.category')}
         </Typography>
         <FormControl fullWidth className="mb-4">
           <Select
@@ -85,6 +85,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
             onChange={handleCategoryChange}
             size="small"
           >
+            <MenuItem value="all">{t('common.all', 'All')}</MenuItem>
             {categories.map((category) => (
               <MenuItem key={category.value} value={category.value}>
                 {locale === 'ar' ? category.labelAr : category.label}
@@ -94,7 +95,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
         </FormControl>
         
         <Typography variant="subtitle2" className="mb-2">
-          {t('product.sort')}
+          {t('products.sort')}
         </Typography>
         <FormControl fullWidth className="mb-4">
           <Select
@@ -111,7 +112,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
         </FormControl>
         
         <Typography variant="subtitle2" className="mb-2">
-          {t('product.priceRange')}
+          {t('products.priceRange')}
         </Typography>
         <Box px={1}>
           <Slider
@@ -119,7 +120,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
             onChange={handlePriceRangeChange}
             valueLabelDisplay="auto"
             min={0}
-            max={20}
+            max={Math.max(100, priceRange[1])}
             step={1}
           />
           <Box className="flex justify-between">
@@ -135,7 +136,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
           className="mt-4"
           onClick={onClose}
         >
-          {t('product.applyFilters')}
+          {t('products.applyFilters')}
         </Button>
         
         <Button 
@@ -145,7 +146,7 @@ const FilterDrawer: React.FC<FilterDrawerProps> = ({
           className="mt-2"
           onClick={onClearFilters}
         >
-          {t('product.clearFilters')}
+          {t('products.clearFilters')}
         </Button>
       </Box>
     </Drawer>

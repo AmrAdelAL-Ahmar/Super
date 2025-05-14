@@ -10,6 +10,7 @@ export interface CartItem {
   quantity: number;
   stock: number;
   unit: string;
+  discount?: number;  // Make discount optional for backward compatibility
 }
 
 // Define the cart state
@@ -23,8 +24,9 @@ interface CartState {
 const calculateCartTotals = (items: CartItem[]) => {
   return items.reduce(
     (totals, item) => {
+      const itemPrice = item.discount ? item.price * (1 - item.discount / 100) : item.price;
       totals.totalItems += item.quantity;
-      totals.totalAmount += item.price * item.quantity;
+      totals.totalAmount += itemPrice * item.quantity;
       return totals;
     },
     { totalItems: 0, totalAmount: 0 }
@@ -51,10 +53,13 @@ const cartSlice = createSlice({
 
       if (existingItemIndex >= 0) {
         // If item already exists in cart, increase quantity
-        state.items[existingItemIndex].quantity += 1;
+        state.items[existingItemIndex].quantity += action.payload.quantity || 1;
       } else {
-        // Otherwise, add new item
-        state.items.push({ ...action.payload, quantity: 1 });
+        // Otherwise, add new item with the specified quantity
+        state.items.push({ 
+          ...action.payload, 
+          quantity: action.payload.quantity || 1 
+        });
       }
 
       // Update totals

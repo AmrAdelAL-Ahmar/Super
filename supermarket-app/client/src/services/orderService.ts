@@ -1,4 +1,14 @@
-import { Order } from "@/types/order";
+import { 
+  Order, 
+  OrderStatus, 
+  OrderFilter, 
+  OrderSummary,
+  formatOrderDate
+} from "@/types/order";
+import { handleApiError } from "@/utils/errorHandling";
+
+// API timeout for simulating network delay (ms)
+const API_TIMEOUT = 500;
 
 // Mock orders data
 const MOCK_ORDERS: Order[] = [
@@ -154,37 +164,223 @@ const MOCK_ORDERS: Order[] = [
 ];
 
 /**
+ * Process order data before returning it to the client
+ * Adds any calculated fields and ensures consistent formatting
+ * 
+ * @param order Order data from API
+ * @returns Processed order data
+ */
+const processOrderData = (order: Order): Order => {
+  // In a real app, we might do more processing here
+  return {
+    ...order,
+  };
+};
+
+/**
+ * Convert full order to order summary format for list views
+ * 
+ * @param order Full order data
+ * @returns Order summary
+ */
+const toOrderSummary = (order: Order): OrderSummary => {
+  return {
+    id: order.id,
+    date: order.date,
+    status: order.status,
+    total: order.total,
+    itemsCount: order.items.length
+  };
+};
+
+/**
  * Get all orders for the current user
+ * 
+ * @returns Promise resolving to array of orders
  */
 export const getUserOrders = async (): Promise<Order[]> => {
-  // In a real app, this would be a fetch call to the API
-  // For now, we'll just return mock data
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(MOCK_ORDERS), 500);
-  });
+  try {
+    // In a real app, this would be a fetch call to the API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const processedOrders = MOCK_ORDERS.map(processOrderData);
+        resolve(processedOrders);
+      }, API_TIMEOUT);
+    });
+  } catch (error) {
+    return handleApiError(error, 'Failed to fetch orders');
+  }
+};
+
+/**
+ * Get order summaries for the current user
+ * Lighter-weight version for list views
+ * 
+ * @returns Promise resolving to array of order summaries
+ */
+export const getOrderSummaries = async (): Promise<OrderSummary[]> => {
+  try {
+    // In a real app, this would be a fetch call to the API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const summaries = MOCK_ORDERS.map(toOrderSummary);
+        resolve(summaries);
+      }, API_TIMEOUT);
+    });
+  } catch (error) {
+    return handleApiError(error, 'Failed to fetch order summaries');
+  }
 };
 
 /**
  * Get a specific order by ID
+ * 
+ * @param orderId Order ID to retrieve
+ * @returns Promise resolving to order or null if not found
  */
 export const getOrderById = async (orderId: string): Promise<Order | null> => {
-  // In a real app, this would be a fetch call to the API
-  // For now, we'll just filter the mock data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const order = MOCK_ORDERS.find(order => order.id === orderId) || null;
-      resolve(order);
-    }, 500);
-  });
+  try {
+    // In a real app, this would be a fetch call to the API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const order = MOCK_ORDERS.find(order => order.id === orderId) || null;
+        resolve(order ? processOrderData(order) : null);
+      }, API_TIMEOUT);
+    });
+  } catch (error) {
+    return handleApiError(error, `Failed to fetch order with ID: ${orderId}`);
+  }
+};
+
+/**
+ * Get filtered orders based on criteria
+ * 
+ * @param filter Order filter criteria
+ * @returns Promise resolving to filtered orders
+ */
+export const getFilteredOrders = async (filter: OrderFilter): Promise<Order[]> => {
+  try {
+    // In a real app, this would be a fetch call to the API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        let filteredOrders = [...MOCK_ORDERS];
+        
+        // Apply status filter
+        if (filter.status) {
+          filteredOrders = filteredOrders.filter(order => order.status === filter.status);
+        }
+        
+        // Apply search filter
+        if (filter.searchTerm) {
+          const searchLower = filter.searchTerm.toLowerCase();
+          filteredOrders = filteredOrders.filter(order => 
+            order.id.toLowerCase().includes(searchLower)
+          );
+        }
+        
+        // Apply date range filter
+        if (filter.dateFrom || filter.dateTo) {
+          filteredOrders = filteredOrders.filter(order => {
+            const orderDate = new Date(order.date).getTime();
+            const fromOk = !filter.dateFrom || orderDate >= new Date(filter.dateFrom).getTime();
+            const toOk = !filter.dateTo || orderDate <= new Date(filter.dateTo).getTime();
+            return fromOk && toOk;
+          });
+        }
+        
+        // Apply sorting
+        if (filter.sortBy) {
+          const direction = filter.sortDirection === 'asc' ? 1 : -1;
+          
+          switch (filter.sortBy) {
+            case 'date':
+              filteredOrders.sort((a, b) => 
+                direction * (new Date(a.date).getTime() - new Date(b.date).getTime())
+              );
+              break;
+            case 'total':
+              filteredOrders.sort((a, b) => 
+                direction * (a.total - b.total)
+              );
+              break;
+            // Add other sort options as needed
+          }
+        }
+        
+        // Apply pagination if specified
+        if (filter.page !== undefined && filter.limit !== undefined) {
+          const start = (filter.page - 1) * filter.limit;
+          const end = start + filter.limit;
+          filteredOrders = filteredOrders.slice(start, end);
+        }
+        
+        resolve(filteredOrders.map(processOrderData));
+      }, API_TIMEOUT);
+    });
+  } catch (error) {
+    return handleApiError(error, 'Failed to filter orders');
+  }
+};
+
+/**
+ * Cancel an order
+ * 
+ * @param orderId Order ID to cancel
+ * @returns Promise resolving to success status
+ */
+export const cancelOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    // In a real app, this would be a fetch call to the API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const orderIndex = MOCK_ORDERS.findIndex(order => order.id === orderId);
+        
+        // Order not found or already delivered/cancelled
+        if (orderIndex === -1 || 
+            !['pending', 'confirmed', 'processing'].includes(MOCK_ORDERS[orderIndex].status)) {
+          resolve(false);
+          return;
+        }
+        
+        // In a real app, this would update the database
+        MOCK_ORDERS[orderIndex].status = 'cancelled';
+        MOCK_ORDERS[orderIndex].timeline.push({
+          status: 'cancelled',
+          date: new Date().toISOString()
+        });
+        
+        resolve(true);
+      }, API_TIMEOUT);
+    });
+  } catch (error) {
+    return handleApiError(error, `Failed to cancel order with ID: ${orderId}`, false);
+  }
 };
 
 /**
  * Reorder items from a previous order
+ * 
+ * @param orderId Order ID to reorder
+ * @returns Promise resolving to success status
  */
 export const reorderItems = async (orderId: string): Promise<boolean> => {
-  // In a real app, this would be a fetch call to the API
-  // For now, we'll just return success
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(true), 500);
-  });
+  try {
+    // In a real app, this would be a fetch call to the API
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const order = MOCK_ORDERS.find(order => order.id === orderId);
+        
+        // Order not found
+        if (!order) {
+          resolve(false);
+          return;
+        }
+        
+        // In a real app, this would add the items to the user's cart
+        resolve(true);
+      }, API_TIMEOUT);
+    });
+  } catch (error) {
+    return handleApiError(error, `Failed to reorder items from order with ID: ${orderId}`, false);
+  }
 }; 

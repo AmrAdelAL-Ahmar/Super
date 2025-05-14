@@ -26,11 +26,11 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({
   
   // Nutrition data for display
   const nutritionData = [
-    { name: t('product.calories'), value: `${nutrition.calories} kcal` },
-    { name: t('product.protein'), value: `${nutrition.protein} g` },
-    { name: t('product.carbs'), value: `${nutrition.carbs} g` },
-    { name: t('product.fat'), value: `${nutrition.fat} g` },
-    { name: t('product.fiber'), value: `${nutrition.fiber} g` },
+    { name: t('products.calories'), value: `${nutrition.calories} kcal` },
+    { name: t('products.protein'), value: `${nutrition.protein} g` },
+    { name: t('products.carbs'), value: `${nutrition.carbs} g` },
+    { name: t('products.fat'), value: `${nutrition.fat} g` },
+    { name: t('products.fiber', 'Fiber'), value: `${nutrition.fiber} g` },
   ];
   
   return (
@@ -41,7 +41,7 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({
       className={className}
     >
       <Typography variant="h6" className="font-bold mb-4">
-        {t('product.nutritionFacts')}
+        {t('products.nutritionalValues')}
       </Typography>
       
       <TableContainer component={Paper} variant="outlined">
@@ -58,6 +58,12 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+      
+      <Box mt={2}>
+        <Typography variant="caption" color="textSecondary">
+          {t('products.nutritionDisclaimer')}
+        </Typography>
+      </Box>
     </motion.div>
   );
 };
