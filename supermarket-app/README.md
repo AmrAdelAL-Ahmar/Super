@@ -160,3 +160,119 @@ supermarket-app/
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 
+
+## User Management System
+
+The Supermarket App includes a comprehensive user management system with the following features:
+
+### Authentication Features
+- User registration and login
+- Password recovery
+- JWT-based authentication
+- Role-based authorization (customer, owner, delivery)
+- Secure password storage with bcrypt hashing
+
+### Profile Management
+- Update personal information
+- Change password
+- Manage address book
+
+### Address Management
+- Add, edit, and delete delivery addresses
+- Set default address
+- Store coordinates for map integration
+
+## Setup Instructions
+
+### Quick Setup
+
+#### Using the Setup Script (Linux/Mac):
+```bash
+# Navigate to the project directory
+cd supermarket-app
+
+# Make the setup script executable
+chmod +x setup.sh
+
+# Run the setup script
+./setup.sh
+```
+
+#### Using the Setup Batch File (Windows):
+```bash
+# Navigate to the project directory
+cd supermarket-app
+
+# Run the setup batch file
+setup.bat
+```
+
+### Manual Setup
+
+1. Set up the server:
+   ```bash
+   # Navigate to the server directory
+   cd supermarket-app/server
+   
+   # Create a .env file with the following content:
+   # NODE_ENV=development
+   # PORT=5000
+   # MONGO_URI=mongodb://localhost:27017/supermarket
+   # JWT_SECRET=your_secret_key
+   # JWT_EXPIRE=30d
+   # JWT_COOKIE_EXPIRE=30
+   # CLIENT_URL=http://localhost:3000
+   
+   # Install dependencies
+   npm install
+   
+   # Build TypeScript
+   npm run build
+   
+   # Start the development server
+   npm run dev
+   ```
+
+2. Set up the client:
+   ```bash
+   # Navigate to the client directory
+   cd supermarket-app/client
+   
+   # Create a .env.local file with the following content:
+   # NEXT_PUBLIC_API_URL=http://localhost:5000/api
+   
+   # Install dependencies
+   npm install
+   
+   # Start the development server
+   npm run dev
+   ```
+
+### Testing the User Management System
+
+1. Register a new account at http://localhost:3000/register
+2. Log in with your credentials at http://localhost:3000/login
+3. Access your profile at http://localhost:3000/profile to update personal information
+4. Manage your addresses at http://localhost:3000/profile/addresses
+
+### API Endpoints
+
+#### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and get token
+- `GET /api/auth/logout` - Logout and clear cookie
+- `GET /api/auth/me` - Get current user profile
+- `PUT /api/auth/updatedetails` - Update user details
+- `PUT /api/auth/updatepassword` - Update password
+
+#### Address Management
+- `POST /api/users/addresses` - Add a new address
+- `PUT /api/users/addresses/:id` - Update an address
+- `DELETE /api/users/addresses/:id` - Delete an address
+
+#### User Management (Owner Only)
+- `GET /api/users` - Get all users
+- `GET /api/users/:id` - Get user by ID
+- `POST /api/users` - Create a new user
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user 

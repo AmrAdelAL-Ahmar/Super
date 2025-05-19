@@ -6,8 +6,16 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useDispatch } from 'react-redux';
 import { login } from '@/features/auth/authSlice';
 import MainLayout from '@/layouts/MainLayout';
-import { TextField, Button, Paper, Typography, Box, CircularProgress, Alert, FormControlLabel, Checkbox } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Typography, FormControlLabel, Checkbox, RadioGroup, Radio, FormControl, FormLabel } from '@mui/material';
+
+// Import reusable components
+import AuthForm from '@/components/auth/AuthForm';
+import FormField from '@/components/auth/FormField';
+import SubmitButton from '@/components/auth/SubmitButton';
+
+// Import services
+import { registerUser } from '@/services/authService';
+import { UserRole } from '@/types/user';
 
 const Register = () => {
   const { t } = useTranslation('common');
@@ -17,8 +25,10 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
+    role: 'customer' as UserRole,
     agreeTerms: false,
   });
   const [loading, setLoading] = useState(false);
@@ -51,180 +61,163 @@ const Register = () => {
     }
     
     try {
-      // In a real app, you would make an API call to your backend
-      // For now, we'll simulate it with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the register API service
+      const user = await registerUser({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role
+      });
       
-      // Dispatch login action (would normally be done after API call)
+      // Dispatch login action with the user data from the API response
       dispatch(login({ 
-        user: { 
-          id: '1', 
-          email: formData.email,
-          name: formData.name, 
-          role: 'customer' 
-        } 
+        user: user
       }));
       
-      router.push('/');
-    } catch (err) {
-      setError(t('auth.registerError')||"");
+      // Redirect based on user role
+      if (user.role === 'owner') {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
+    } catch (err: any) {
+      // Handle specific error cases
+      if (err.response) {
+        // Handle validation errors
+        if (err.response.status === 400) {
+          setError(err.response.data?.error || t('auth.registerError') || 'Registration failed');
+        } else {
+          setError(err.response.data?.error || t('auth.registerError') || 'Registration failed');
+        }
+      } else if (err.request) {
+        // No response received from server
+        setError(t('auth.serverUnavailable') || 'Server unavailable. Please try again later.');
+      } else {
+        // Something else went wrong
+        setError(t('auth.registerError') || 'An error occurred during registration');
+      }
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
   
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: 'beforeChildren',
-        staggerChildren: 0.1,
-      },
-    },
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
+  // Footer content with login link
+  const footerContent = (
+    <Typography variant="body2">
+      {t('auth.haveAccount')}{' '}
+      <Link href="/login" className="text-primary-600 hover:underline">
+        {t('auth.login')}
+      </Link>
+    </Typography>
+  );
   
   return (
     <MainLayout>
-      <div className="py-10 px-4 min-h-[calc(100vh-200px)] flex items-center justify-center">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="w-full max-w-md"
-        >
-          <Paper elevation={3} className="p-8">
-            <motion.div variants={itemVariants}>
-              <Typography variant="h4" component="h1" className="text-center text-primary-600 mb-6">
-                {t('auth.register')}
-              </Typography>
-            </motion.div>
-            
-            {error && (
-              <motion.div variants={itemVariants}>
-                <Alert severity="error" className="mb-4">
-                  {error}
-                </Alert>
-              </motion.div>
-            )}
-            
-            <form onSubmit={handleSubmit}>
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.name')}
-                  name="name"
-                  value={formData.name}
+      <AuthForm
+        title={t('auth.register')}
+        error={error}
+        footer={footerContent}
+      >
+        <form onSubmit={handleSubmit}>
+          <FormField
+            name="name"
+            label={t('auth.name')}
+            value={formData.name}
+            onChange={handleChange}
+            required
+            autoComplete="name"
+          />
+          
+          <FormField
+            name="email"
+            label={t('auth.email')}
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            autoComplete="email"
+          />
+          
+          <FormField
+            name="phone"
+            label={t('auth.phone')}
+            type="tel"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+            autoComplete="tel"
+          />
+          
+          <FormField
+            name="password"
+            label={t('auth.password')}
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+          />
+          
+          <FormField
+            name="confirmPassword"
+            label={t('auth.confirmPassword')}
+            type="password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+            autoComplete="new-password"
+          />
+          
+          <FormControl component="fieldset" className="mt-4 mb-2">
+            <FormLabel component="legend">{t('auth.accountType') || 'Account Type'}</FormLabel>
+            <RadioGroup
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              row
+            >
+              <FormControlLabel 
+                value="customer" 
+                control={<Radio />} 
+                label={t('auth.customerAccount') || 'Customer'} 
+              />
+              <FormControlLabel 
+                value="owner" 
+                control={<Radio />} 
+                label={t('auth.ownerAccount') || 'Supermarket Owner'} 
+              />
+            </RadioGroup>
+          </FormControl>
+          
+          <div className="mt-2">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  name="agreeTerms"
+                  checked={formData.agreeTerms}
                   onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.email')}
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.password')}
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <TextField
-                  fullWidth
-                  label={t('auth.confirmPassword')}
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  margin="normal"
-                  required
-                  variant="outlined"
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants} className="mt-2">
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      name="agreeTerms"
-                      checked={formData.agreeTerms}
-                      onChange={handleChange}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <span>
-                      {t('auth.agreeTerms')}{' '}
-                      <Link href="/terms" className="text-primary-600 hover:underline">
-                        {t('auth.termsLink')}
-                      </Link>
-                    </span>
-                  }
-                />
-              </motion.div>
-              
-              <motion.div variants={itemVariants}>
-                <Button
-                  fullWidth
-                  type="submit"
-                  variant="contained"
                   color="primary"
-                  size="large"
-                  disabled={loading}
-                  className="mt-4 bg-primary-600 hover:bg-primary-700"
-                >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    t('auth.registerButton')
-                  )}
-                </Button>
-              </motion.div>
-            </form>
-            
-            <motion.div variants={itemVariants} className="mt-6 text-center">
-              <Typography variant="body2">
-                {t('auth.haveAccount')}{' '}
-                <Link href="/login" className="text-primary-600 hover:underline">
-                  {t('auth.login')}
-                </Link>
-              </Typography>
-            </motion.div>
-          </Paper>
-        </motion.div>
-      </div>
+                />
+              }
+              label={
+                <span>
+                  {t('auth.agreeTerms')}{' '}
+                  <Link href="/terms" className="text-primary-600 hover:underline">
+                    {t('auth.termsLink')}
+                  </Link>
+                </span>
+              }
+            />
+          </div>
+          
+          <SubmitButton
+            loading={loading}
+            label={t('auth.registerButton')}
+          />
+        </form>
+      </AuthForm>
     </MainLayout>
   );
 };

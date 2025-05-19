@@ -1,82 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { clearCart } from '@/features/cart/cartSlice';
+import { clearCart, CartItem as CartSliceItem } from '@/features/cart/cartSlice';
 import MainLayout from '@/layouts/MainLayout';
 import { 
   Container, 
   Typography, 
   Paper, 
   Grid, 
-  TextField, 
-  Button, 
-  RadioGroup, 
-  Radio, 
-  FormControlLabel, 
-  FormControl, 
-  FormLabel, 
-  Divider, 
   Box, 
-  Stepper, 
-  Step, 
-  StepLabel,
-  Card,
-  CardContent,
-  Alert,
-  MenuItem,
-  Select,
-  InputLabel,
-  Checkbox
+  Button
 } from '@mui/material';
 import { motion } from 'framer-motion';
 
-// Mock addresses
-const MOCK_ADDRESSES = [
-  {
-    id: '1',
-    name: 'Home',
-    nameAr: 'المنزل',
-    recipient: 'John Doe',
-    street: '123 Main St',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    phone: '555-123-4567',
-    isDefault: true
-  },
-  {
-    id: '2',
-    name: 'Work',
-    nameAr: 'العمل',
-    recipient: 'John Doe',
-    street: '456 Office Ave',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10002',
-    phone: '555-987-6543',
-    isDefault: false
-  }
-];
+// Components
+import CheckoutStepper from '@/components/checkout/CheckoutStepper';
+import AddressSelection from '@/components/checkout/AddressSelection';
+import PaymentMethodSelection from '@/components/checkout/PaymentMethodSelection';
+import OrderReview from '@/components/checkout/OrderReview';
+import CheckoutItemsList from '@/components/checkout/CheckoutItemsList';
+import OrderSummary from '@/components/cart/OrderSummary';
+
+// Services and Types
+import checkoutService, { Address } from '@/services/checkoutService';
+import { CartItem } from '@/types/cart';
 
 const CheckoutPage = () => {
   const { t } = useTranslation('common');
   const router = useRouter();
   const locale = router.locale || 'en';
   const dispatch = useDispatch();
-  const { direction } = useSelector((state: RootState) => state.ui);
   const { items, totalItems, totalAmount } = useSelector((state: RootState) => state.cart);
   
   const [activeStep, setActiveStep] = useState(0);
-  const [selectedAddress, setSelectedAddress] = useState('1');
+  const [selectedAddress, setSelectedAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [orderNotes, setOrderNotes] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isNewAddress, setIsNewAddress] = useState(false);
-  const [newAddress, setNewAddress] = useState({
+  const [newAddress, setNewAddress] = useState<Address>({
     name: '',
     recipient: '',
     street: '',
@@ -86,9 +51,33 @@ const CheckoutPage = () => {
     phone: '',
     isDefault: false
   });
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Shipping cost
   const shippingCost = 5.99;
+  
+  // Load user addresses
+  useEffect(() => {
+    const loadAddresses = async () => {
+      try {
+        const userAddresses = await checkoutService.getUserAddresses();
+        setAddresses(userAddresses);
+        
+        // Set default address if available
+        const defaultAddress = userAddresses.find(addr => addr.isDefault);
+        if (defaultAddress && defaultAddress.id) {
+          setSelectedAddress(defaultAddress.id);
+        } else if (userAddresses.length > 0 && userAddresses[0].id) {
+          setSelectedAddress(userAddresses[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load addresses:', error);
+      }
+    };
+    
+    loadAddresses();
+  }, []);
   
   // Check if cart is empty and redirect if needed
   useEffect(() => {
@@ -134,19 +123,92 @@ const CheckoutPage = () => {
     }
   };
   
+  // Handle payment method change
+  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPaymentMethod(e.target.value);
+  };
+  
+  // Handle order notes change
+  const handleOrderNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOrderNotes(e.target.value);
+  };
+  
+  // Handle set default address
+  const handleSetDefaultAddress = (isDefault: boolean) => {
+    setNewAddress({
+      ...newAddress,
+      isDefault
+    });
+  };
+  
+  // Handle agree to terms change
+  const handleAgreeToTerms = (agreed: boolean) => {
+    setAgreedToTerms(agreed);
+  };
+  
+  // Convert cart items to the format expected by the checkout service
+  const convertCartItems = (cartItems: CartSliceItem[]): CartItem[] => {
+    return cartItems.map(item => ({
+      ...item,
+      category: '',
+      inStock: true
+    }));
+  };
+  
   // Handle place order
-  const handlePlaceOrder = () => {
-    // In a real app, this would send an API request to create the order
+  const handlePlaceOrder = async () => {
+    if (!agreedToTerms) return;
     
-    // Clear the cart
-    dispatch(clearCart());
+    setIsLoading(true);
     
-    // Navigate to success page (for now just redirect to home)
-    router.push('/checkout/success');
+    try {
+      // Save new address if needed
+      let orderAddress = addressData;
+      
+      if (isNewAddress) {
+        const savedAddress = await checkoutService.saveAddress(newAddress);
+        orderAddress = savedAddress;
+      }
+      
+      if (!orderAddress) {
+        console.error('No address selected');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Place the order
+      const orderData = {
+        items: convertCartItems(items),
+        address: orderAddress,
+        paymentMethod,
+        orderNotes: orderNotes || undefined,
+        subtotal: totalAmount,
+        shippingCost,
+        total: totalAmount + shippingCost
+      };
+      
+      const result = await checkoutService.placeOrder(orderData);
+      
+      if (result.success) {
+        // Clear the cart
+        dispatch(clearCart());
+        
+        // Navigate to success page
+        router.push('/checkout/success');
+      }
+    } catch (error) {
+      console.error('Failed to place order:', error);
+      // Handle error (show notification, etc.)
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Get selected address data
-  const addressData = MOCK_ADDRESSES.find(addr => addr.id === selectedAddress);
+  const addressData = addresses.find(addr => addr.id === selectedAddress);
+  
+  // Current address for review
+  const currentAddress = isNewAddress ? newAddress : addressData;
   
   // Animation variants
   const containerVariants = {
@@ -168,6 +230,17 @@ const CheckoutPage = () => {
     },
   };
   
+  // Check if we can proceed to next step
+  const canProceedToNextStep = () => {
+    if (activeStep === 0) {
+      if (isNewAddress) {
+        return newAddress.recipient && newAddress.street && newAddress.city && newAddress.phone;
+      }
+      return !!addressData;
+    }
+    return true;
+  };
+  
   return (
     <MainLayout>
       <Container maxWidth="lg" className="py-8">
@@ -183,15 +256,7 @@ const CheckoutPage = () => {
             </Typography>
           </motion.div>
           
-          <motion.div variants={itemVariants}>
-            <Stepper activeStep={activeStep} alternativeLabel>
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-          </motion.div>
+          <CheckoutStepper steps={steps} activeStep={activeStep} className="mb-8" />
           
           <motion.div variants={itemVariants} className="mt-8">
             <Grid container spacing={4}>
@@ -200,214 +265,38 @@ const CheckoutPage = () => {
                 <Paper elevation={2} className="p-6">
                   {/* Step 1: Shipping Address */}
                   {activeStep === 0 && (
-                    <div>
-                      <Typography variant="h5" className="mb-4">
-                        {t('checkout.shippingAddress')}
-                      </Typography>
-                      
-                      <RadioGroup
-                        value={isNewAddress ? 'new' : selectedAddress}
-                        onChange={handleAddressSelection}
-                      >
-                        {MOCK_ADDRESSES.map((address) => (
-                          <FormControlLabel
-                            key={address.id}
-                            value={address.id}
-                            control={<Radio />}
-                            label={
-                              <Box className="ml-2">
-                                <Typography variant="subtitle1" className="font-medium">
-                                  {locale === 'ar' ? address.nameAr : address.name}
-                                  {address.isDefault && (
-                                    <span className="ml-2 text-sm text-primary-600">
-                                      ({t('profile.defaultAddress')})
-                                    </span>
-                                  )}
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary">
-                                  {address.recipient}, {address.street}, {address.city}, {address.state} {address.zipCode}
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary">
-                                  {address.phone}
-                                </Typography>
-                              </Box>
-                            }
-                            className="mb-2 border border-gray-200 rounded-md p-2 hover:border-primary-300"
-                          />
-                        ))}
-                        
-                        <FormControlLabel
-                          value="new"
-                          control={<Radio />}
-                          label={
-                            <Typography variant="subtitle1" className="font-medium">
-                              {t('checkout.addNewAddress')}
-                            </Typography>
-                          }
-                          className="mt-2 border border-gray-200 rounded-md p-2 hover:border-primary-300"
-                        />
-                      </RadioGroup>
-                      
-                      {isNewAddress && (
-                        <Grid container spacing={2} className="mt-4">
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label={t('profile.addressName')}
-                              name="name"
-                              value={newAddress.name}
-                              onChange={handleNewAddressChange}
-                              fullWidth
-                              required
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label={t('profile.recipient')}
-                              name="recipient"
-                              value={newAddress.recipient}
-                              onChange={handleNewAddressChange}
-                              fullWidth
-                              required
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12}>
-                            <TextField
-                              label={t('profile.streetAddress')}
-                              name="street"
-                              value={newAddress.street}
-                              onChange={handleNewAddressChange}
-                              fullWidth
-                              required
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label={t('profile.city')}
-                              name="city"
-                              value={newAddress.city}
-                              onChange={handleNewAddressChange}
-                              fullWidth
-                              required
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label={t('profile.zipCode')}
-                              name="zipCode"
-                              value={newAddress.zipCode}
-                              onChange={handleNewAddressChange}
-                              fullWidth
-                              required
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12}>
-                            <TextField
-                              label={t('profile.phone')}
-                              name="phone"
-                              value={newAddress.phone}
-                              onChange={handleNewAddressChange}
-                              fullWidth
-                              required
-                            />
-                          </Grid>
-                          
-                          <Grid item xs={12}>
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={newAddress.isDefault}
-                                  onChange={(e) => setNewAddress({...newAddress, isDefault: e.target.checked})}
-                                  color="primary"
-                                />
-                              }
-                              label={t('profile.setAsDefault')}
-                            />
-                          </Grid>
-                        </Grid>
-                      )}
+                    <>
+                      <AddressSelection 
+                        addresses={addresses}
+                        selectedAddress={selectedAddress}
+                        isNewAddress={isNewAddress}
+                        newAddress={newAddress}
+                        onAddressSelection={handleAddressSelection}
+                        onNewAddressChange={handleNewAddressChange}
+                        onSetDefaultAddress={handleSetDefaultAddress}
+                      />
                       
                       <Box className="flex justify-end mt-6">
                         <Button
                           variant="contained"
                           onClick={handleNext}
-                          disabled={isNewAddress && (!newAddress.recipient || !newAddress.street || !newAddress.city)}
+                          disabled={!canProceedToNextStep()}
                           className="bg-primary-600 hover:bg-primary-700"
                         >
                           {t('common.next')}
                         </Button>
                       </Box>
-                    </div>
+                    </>
                   )}
                   
                   {/* Step 2: Payment Method */}
                   {activeStep === 1 && (
-                    <div>
-                      <Typography variant="h5" className="mb-4">
-                        {t('checkout.paymentMethod')}
-                      </Typography>
-                      
-                      <RadioGroup
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      >
-                        <FormControlLabel
-                          value="cash"
-                          control={<Radio />}
-                          label={
-                            <Box className="ml-2">
-                              <Typography variant="subtitle1" className="font-medium">
-                                {t('checkout.cashOnDelivery')}
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {t('checkout.payWithCash')}
-                              </Typography>
-                            </Box>
-                          }
-                          className="mb-2 border border-gray-200 rounded-md p-2 hover:border-primary-300"
-                        />
-                        
-                        <FormControlLabel
-                          value="card"
-                          control={<Radio />}
-                          label={
-                            <Box className="ml-2">
-                              <Typography variant="subtitle1" className="font-medium">
-                                {t('checkout.creditCard')}
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {t('checkout.payWithCard')}
-                              </Typography>
-                            </Box>
-                          }
-                          className="mb-2 border border-gray-200 rounded-md p-2 hover:border-primary-300"
-                        />
-                      </RadioGroup>
-                      
-                      {paymentMethod === 'card' && (
-                        <Alert severity="info" className="mt-4">
-                          {t('checkout.cardPaymentMessage')}
-                        </Alert>
-                      )}
-                      
-                      <Divider className="my-6" />
-                      
-                      <Typography variant="h6" className="mb-3">
-                        {t('checkout.notes')}
-                      </Typography>
-                      
-                      <TextField
-                        label={t('checkout.orderNotes')}
-                        value={orderNotes}
-                        onChange={(e) => setOrderNotes(e.target.value)}
-                        multiline
-                        rows={4}
-                        fullWidth
-                        placeholder={t('checkout.notesPlaceholder') || ''}
+                    <>
+                      <PaymentMethodSelection 
+                        paymentMethod={paymentMethod}
+                        orderNotes={orderNotes}
+                        onPaymentMethodChange={handlePaymentMethodChange}
+                        onOrderNotesChange={handleOrderNotesChange}
                       />
                       
                       <Box className="flex justify-between mt-6">
@@ -425,93 +314,18 @@ const CheckoutPage = () => {
                           {t('common.next')}
                         </Button>
                       </Box>
-                    </div>
+                    </>
                   )}
                   
                   {/* Step 3: Review Order */}
-                  {activeStep === 2 && (
-                    <div>
-                      <Typography variant="h5" className="mb-4">
-                        {t('checkout.reviewOrder')}
-                      </Typography>
-                      
-                      {/* Shipping Address */}
-                      <Card variant="outlined" className="mb-4">
-                        <CardContent>
-                          <Typography variant="h6" className="mb-2">
-                            {t('checkout.shippingAddress')}
-                          </Typography>
-                          
-                          {isNewAddress ? (
-                            <Box>
-                              <Typography variant="body1">{newAddress.recipient}</Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {newAddress.street}, {newAddress.city} {newAddress.zipCode}
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {newAddress.phone}
-                              </Typography>
-                            </Box>
-                          ) : addressData && (
-                            <Box>
-                              <Typography variant="body1">{addressData.recipient}</Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {addressData.street}, {addressData.city}, {addressData.state} {addressData.zipCode}
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {addressData.phone}
-                              </Typography>
-                            </Box>
-                          )}
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Payment Method */}
-                      <Card variant="outlined" className="mb-4">
-                        <CardContent>
-                          <Typography variant="h6" className="mb-2">
-                            {t('checkout.paymentMethod')}
-                          </Typography>
-                          
-                          <Typography variant="body1">
-                            {paymentMethod === 'cash' ? t('checkout.cashOnDelivery') : t('checkout.creditCard')}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Order Notes */}
-                      {orderNotes && (
-                        <Card variant="outlined" className="mb-4">
-                          <CardContent>
-                            <Typography variant="h6" className="mb-2">
-                              {t('checkout.notes')}
-                            </Typography>
-                            
-                            <Typography variant="body2">
-                              {orderNotes}
-                            </Typography>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Terms and Conditions */}
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={agreedToTerms}
-                            onChange={(e) => setAgreedToTerms(e.target.checked)}
-                            color="primary"
-                            required
-                          />
-                        }
-                        label={
-                          <span>
-                            {t('checkout.agreeToTerms')}{' '}
-                            <Link href="/terms" className="text-primary-600 hover:underline">
-                              {t('checkout.termsLink')}
-                            </Link>
-                          </span>
-                        }
+                  {activeStep === 2 && currentAddress && (
+                    <>
+                      <OrderReview 
+                        address={currentAddress}
+                        paymentMethod={paymentMethod}
+                        orderNotes={orderNotes || undefined}
+                        agreedToTerms={agreedToTerms}
+                        onAgreeChange={handleAgreeToTerms}
                       />
                       
                       <Box className="flex justify-between mt-6">
@@ -524,13 +338,13 @@ const CheckoutPage = () => {
                         <Button
                           variant="contained"
                           onClick={handlePlaceOrder}
-                          disabled={!agreedToTerms}
+                          disabled={!agreedToTerms || isLoading}
                           className="bg-primary-600 hover:bg-primary-700"
                         >
-                          {t('checkout.placeOrder')}
+                          {isLoading ? t('common.processing') : t('checkout.placeOrder')}
                         </Button>
                       </Box>
-                    </div>
+                    </>
                   )}
                 </Paper>
               </Grid>
@@ -543,53 +357,12 @@ const CheckoutPage = () => {
                       {t('cart.orderSummary')}
                     </Typography>
                     
-                    <Box className="max-h-80 overflow-auto mb-4">
-                      {items.map((item) => (
-                        <Box key={item.id} className="flex items-center mb-3 pb-3 border-b">
-                          <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden mr-3">
-                            <img 
-                              src={item.image} 
-                              alt={locale === 'ar' ? item.nameAr : item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-grow">
-                            <Typography variant="body1" className="font-medium">
-                              {locale === 'ar' ? item.nameAr : item.name}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              {item.quantity} x ${item.price.toFixed(2)}
-                            </Typography>
-                          </div>
-                          <Typography variant="body1" className="font-medium">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </Typography>
-                        </Box>
-                      ))}
-                    </Box>
+                    <CheckoutItemsList items={convertCartItems(items)} />
                     
-                    <Divider className="mb-4" />
-                    
-                    <Box className="flex justify-between mb-2">
-                      <Typography>{t('cart.subtotal')}</Typography>
-                      <Typography>${totalAmount.toFixed(2)}</Typography>
-                    </Box>
-                    
-                    <Box className="flex justify-between mb-2">
-                      <Typography>{t('cart.shipping')}</Typography>
-                      <Typography>${shippingCost.toFixed(2)}</Typography>
-                    </Box>
-                    
-                    <Divider className="my-4" />
-                    
-                    <Box className="flex justify-between mb-2">
-                      <Typography variant="h6" className="font-bold">
-                        {t('cart.total')}
-                      </Typography>
-                      <Typography variant="h6" className="font-bold">
-                        ${(totalAmount + shippingCost).toFixed(2)}
-                      </Typography>
-                    </Box>
+                    <OrderSummary 
+                      subtotal={totalAmount}
+                      shippingCost={shippingCost}
+                    />
                   </Paper>
                 </div>
               </Grid>
@@ -609,4 +382,4 @@ export async function getStaticProps({ locale }: { locale: string }) {
   };
 }
 
-export default CheckoutPage; 
+export default CheckoutPage;
